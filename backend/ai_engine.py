@@ -2,18 +2,38 @@ from openai import OpenAI
 import os
 import json
 import pypdf
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
+from google import genai
+import groq
 
 # Load env
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
-load_dotenv(env_path)
+from pathlib import Path
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
+# --- LLM SETUP ---
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+AI_MODEL = os.getenv("AI_MODEL", "gemini-flash-latest")
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_KEY
-)
+# New Google GenAI Client
+google_client = None
+if GOOGLE_API_KEY:
+    print("--- Using Google AI Engine (New SDK) ---")
+    google_client = genai.Client(api_key=GOOGLE_API_KEY)
+
+# OpenRouter Client (OpenAI compatible)
+or_client = None
+if OPENROUTER_KEY:
+    or_client = OpenAI(
+    )
+
+# Groq Client
+groq_client = None
+if GROQ_API_KEY:
+    print("--- Using Groq AI Engine ---")
+    groq_client = groq.Groq(api_key=GROQ_API_KEY)
 
 def extract_text(pdf_path):
     text = ""
@@ -25,7 +45,7 @@ def extract_text(pdf_path):
                 text += result + "\n"
     except Exception as e:
         print(f"PDF Error: {e}")
-    return text # Return FULL text for Agent Graph
+    return text
 
 def generate_flashcards(file_path):
     # 1. Extract
@@ -50,18 +70,64 @@ def generate_flashcards(file_path):
 
     # 3. Call AI
     try:
-        res = client.chat.completions.create(
-            model="google/gemini-3-flash-preview",
-            messages=[{"role": "user", "content": prompt}],
-            extra_headers={"HTTP-Referer": "http://localhost:8501", "X-Title": "CarWorkshop"}
-        )
-        content = res.choices[0].message.content
+        content = ""
+        # Ensure models with ':free' or other provider prefixes go to OpenRouter, not native Google
+        model_is_google_native = "gemini" in AI_MODEL.lower() and ":" not in AI_MODEL
+        model_is_groq_native = any(x in AI_MODEL.lower() for x in ["llama", "mixtral", "gemma"])
+
+        # Try Groq if it's a Groq model
+        if groq_client and model_is_groq_native:
+            try:
+                res = groq_client.chat.completions.create(
+                    model=AI_MODEL,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                content = res.choices[0].message.content
+            except Exception as e:
+                print(f"Groq SDK Error: {e}")
+
+        # Try Google if it's a Gemini model
+        if not content and google_client and model_is_google_native:
+            try:
+                # Use standard gemini if the requested one isn't 1.5/2.0
+                target_model = AI_MODEL if ("gemini" in AI_MODEL.lower()) else "gemini-flash-latest"
+                res = google_client.models.generate_content(
+                    model=target_model,
+                    contents=prompt
+                )
+                content = res.text
+            except Exception as e:
+                print(f"Google New SDK Error: {e}")
+                if not or_client:
+                    raise e
+
+        # Use OpenRouter for non-Gemini models OR as fallback
+        if not content and or_client:
+            try:
+                res = or_client.chat.completions.create(
+                    model=AI_MODEL,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                content = res.choices[0].message.content
+            except Exception as e:
+                print(f"OpenRouter Error: {e}")
+                # Secondary fallback to google if primary failed
+                if google_client and not model_is_google_native:
+                    res = google_client.models.generate_content(
+                        model="gemini-flash-latest",
+                        contents=prompt
+                    )
+                    content = res.text
+                else:
+                    raise e
         
-        # Cleanup potential markdown ticks if AI misbehaves
+        if not content:
+            raise Exception("AI providers failed or returned empty content.")
+        
+        # Cleanup potential markdown ticks
         content = content.replace("```json", "").replace("```", "").strip()
-        
         return json.loads(content)
-        
+
     except Exception as e:
-        print(f"AI Error: {e}")
+        print(f"AI Card Gen Error: {e}")
         return []

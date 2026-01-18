@@ -1,58 +1,75 @@
 # ⚡ FlashDeck AI (Native AI Workshop)
 
-> **"From PDF to Flashcards in Seconds — Powered by Multi-Agent AI."**
+> **"From PDF to Flashcards, Mind Maps, and Quizzes in Seconds — Powered by Groq AI."**
 
-FlashDeck AI is a full-stack automated flashcard generation platform. It mimics the efficiency of **Google's NotebookLM**, analyzing complex PDF documents (100+ slides) and intelligently synthesizing them into high-quality Anki flashcards using a **LangGraph Multi-Agent Architecture**.
+FlashDeck AI is a full-stack automated learning platform. It mimics the efficiency of **Google's NotebookLM**, analyzing complex documents and intelligently synthesizing them into high-quality study materials using a **LangGraph Multi-Agent Architecture** powered by **Groq**.
 
 ---
 
 ## 🏗️ Architecture: The Agentic Workflow
 
-We moved beyond simple RAG. FlashDeck uses a **Map-Reduce Agent Graph** to process documents at scale without losing context.
+We moved beyond simple RAG. FlashDeck uses a **Selective Agent Graph** to process documents and generate specialized study tools on-demand.
 
 ```mermaid
-graph LR
+graph TD
     User[User Uploads PDF] --> B[Backend API]
     B --> A1[Agent: Chunker]
-    A1 -->|Splits Text| A2[Agent: Generator]
-    A2 -->|Map: Generates Cards| A3[Agent: Refiner]
-    A3 -->|Reduce: Deduplicates| DB[Final Deck JSON]
-    DB --> F[Frontend UI]
+    A1 -->|Context| A2[Agent: Studio Generator]
+    
+    subgraph Studio Tools
+        A2 -->|Task: Flashcards| C[Flashcard Refiner]
+        A2 -->|Task: Mind Map| D[Mermaid.js Flowcharter]
+        A2 -->|Task: Test Gen| E[Interactive Quiz]
+    end
+    
+    E -->|Analyze Missed Topics| A3[Agent: Review Specialist]
+    A3 -->|Focused Remediation| F[Targeted Review Cards]
+    
+    C --> UI[Frontend Dashboard]
+    D --> UI
+    F --> UI
 ```
 
 ### 🧠 The Agents (LangGraph)
-1.  **The Chunker**: Splits large PDFs into logical semantic blocks (avoiding token limits).
-2.  **The Generator**: A parallelized agent that reads each chunk and extracts key concepts into Q&A pairs (using `Gemini-3-Pro-Preview`).
-3.  **The Refiner**: Aggregates all generated cards, removes duplicates, and ensures quality consistency.
+1.  **The Chunker**: Performs semantic splitting of large PDFs to maintain context for high-performance Llama models.
+2.  **Studio Generator**: A versatile agent that handles multiple tasks (Cards, Mind Maps, Quizzes) using high-speed **Groq (Llama 3.3 70B)** logic.
+3.  **Review Specialist**: A specialized agent that listens to your quiz results, identifies knowledge gaps, and creates targeted "remedial" flashcards.
 
 ---
 
 ## 🚀 Key Features
--   **Multi-Agent Backend**: Powered by **LangChain**, **LangGraph**, and **OpenRouter** (Gemini Models).
--   **Observability**: Full tracing and monitoring via **LangSmith**.
--   **Notion-Style UI**: A premium, dark-mode aesthetic built with **React**, **Vite**, and **TailwindCSS**.
--   **Interactive Study**: Hover-to-reveal answers (optional), Focus Mode, and Grid View.
+
+-   **High-Speed AI Interface**: Powered by **Groq** for near-instant generation (250+ tokens/sec).
+-   **Interactive Quiz System**: Test yourself with AI-generated MCQs directly inside the platform.
+-   **Targeted Review**: Missed a question? The AI automatically creates focused study cards for those specific weak spots.
+-   **Automated Mind Mapping**: Convert lecture notes into visual hierarchies using **Mermaid.js**.
+-   **Intelligent Chat**: Context-aware brainstorming with your documents using Llama 3.3.
 -   **Universal Export**: 
     -   📸 **Image Grid** (PNG) for sharing.
-    -   📄 **PDF** (High-Res 300DPI) for printing.
+    -   📄 **PDF** (High-Res) for printing.
     -   🎴 **Anki Package** (.apkg) for serious study.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Phase 1: Backend (Python)
--   **Framework**: FastAPI
+### Backend (Python)
+-   **Engine**: Groq (Llama 3.3 70B Versatile)
+-   **Fallback Models**: Google Gemini 1.5 Flash / OpenRouter
 -   **AI Orchestration**: LangChain, LangGraph
--   **Model**: Google Gemini 3 Pro Preview (via OpenRouter)
--   **Tracing**: LangSmith
 -   **PDF Processing**: PyPDF
 
-### Phase 2: Frontend (React)
+### Frontend (React)
 -   **Framework**: Vite + React
--   **Styling**: Tailwind CSS (Dark Mode)
+-   **Styling**: Vanilla CSS (Premium Dark Mode)
 -   **Icons**: Lucide React
--   **Components**: Custom Sticky Tabs, Glassmorphism Cards
+-   **Visuals**: Mermaid.js for Mind Maps
+
+---
+
+## 🌐 Deployment
+For a detailed guide on how to deploy this app with automated GitHub sync (Vercel + Render), check out:
+👉 **[Deployment Guide](./deployment.md)**
 
 ---
 
@@ -68,20 +85,22 @@ pip install -r requirements.txt
 cp ../.env.example ../.env
 
 # Edit the .env file with your specific keys:
-# - LANGSMITH_API_KEY
+# - GROQ_API_KEY (Recommended)
+# - GOOGLE_API_KEY
 # - OPENROUTER_API_KEY
 ```
 
 ```bash
 # Run Server
-uvicorn main:app --reload --port 8001
+source venv/bin/activate
+uvicorn main:app --reload --port 8000
 ```
 
 ### 2. Frontend Setup
 ```bash
-cd frontend
+# Go to the frontend directory
 npm install
 npm run dev
 ```
 
-Visit `http://localhost:5173` and drag-and-drop your lecture notes! 🎓
+Visit `http://localhost:5173` and start your high-speed study session! 🎓

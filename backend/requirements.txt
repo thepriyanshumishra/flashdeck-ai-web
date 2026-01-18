@@ -11,3 +11,6 @@ langchain-openai
 langgraph
 langsmith
 python-dotenv
+langchain-google-genai
+
+
