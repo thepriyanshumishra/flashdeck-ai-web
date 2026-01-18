@@ -12,7 +12,7 @@ import {
     MoreVertical, ThumbsUp, ThumbsDown, Copy, Video,
     Network, Presentation, Table, Lock, PanelRightClose, PanelRightOpen,
     PanelLeftClose, PanelLeftOpen, RotateCw, CheckCircle2, Clock, Trash2,
-    ChevronDown, Settings, Share2, BarChart2, Maximize2
+    ChevronDown, Settings, Share2, BarChart2, Maximize2, MicOff
 } from 'lucide-react';
 
 import Navbar from '../components/layout/Navbar';
@@ -110,6 +110,58 @@ export default function NotebookDashboard() {
         { name: "Data Table", icon: Table, active: false, badge: null },
     ];
 
+    const [mobileTab, setMobileTab] = useState('chat');
+
+    // Voice Input State & Refs
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef(null);
+    const chatInputRef = useRef(null);
+
+    useEffect(() => {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+
+            recognitionRef.current.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    setLocalInputValue(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + finalTranscript);
+                }
+            };
+
+            recognitionRef.current.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                // setIsListening(false); 
+            };
+        }
+    }, []);
+
+    const toggleListening = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        } else {
+            recognitionRef.current?.start();
+            setIsListening(true);
+        }
+    };
+
     return (
         <div className="h-screen bg-background text-gray-200 font-sans overflow-hidden flex flex-col">
             <Navbar />
@@ -117,18 +169,14 @@ export default function NotebookDashboard() {
             {/* Sub-header for Notebook Title & Actions */}
             <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-[#0a0a0a]">
                 <div className="flex items-center gap-3">
-                    {/* Mobile Toggle for Sources */}
-                    <button
-                        className="md:hidden p-2 -ml-2 text-gray-400"
-                        onClick={() => setIsSourcesCollapsed(!isSourcesCollapsed)}
-                    >
-                        {isSourcesCollapsed ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
-                    </button>
-
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center hidden sm:flex">
                         <BookOpen size={18} className="text-indigo-400" />
                     </div>
-                    <h1 className="text-sm font-medium text-white max-w-[150px] sm:max-w-none truncate">{deckName || "Untitled Notebook"}</h1>
+                    {/* Mobile Only Logo/Icon replacement since BookOpen is hidden on mobile */}
+                    <div className="md:hidden w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                        <Brain size={18} className="text-indigo-400" />
+                    </div>
+                    <h1 className="text-sm font-medium text-white max-w-[200px] truncate">{deckName || "Untitled Notebook"}</h1>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-3">
                     <button
@@ -136,13 +184,6 @@ export default function NotebookDashboard() {
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-all text-xs border border-white/5 whitespace-nowrap"
                     >
                         <Plus size={14} /> <span className="hidden sm:inline">Create notebook</span>
-                    </button>
-                    {/* Mobile Toggle for Studio */}
-                    <button
-                        className="md:hidden p-2 text-gray-400"
-                        onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
-                    >
-                        {isStudioCollapsed ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
                     </button>
 
                     <div className="hidden sm:flex items-center gap-3">
@@ -157,15 +198,17 @@ export default function NotebookDashboard() {
             <div className="flex-1 flex overflow-hidden relative">
                 {/* LEFT COLUMN: SOURCES */}
                 <div className={`
-                    ${isSourcesCollapsed ? 'hidden md:flex md:w-14' : 'absolute inset-0 z-30 w-full bg-[#0a0a0a] md:static md:w-[320px] md:bg-transparent'}
-                    flex-shrink-0 flex flex-col border-r border-white/5 transition-all duration-300
+                    ${mobileTab === 'sources' ? 'flex w-full absolute inset-0 z-30 bg-[#0a0a0a] md:static' : 'hidden md:flex'}
+                    ${isSourcesCollapsed ? 'md:w-14' : 'md:w-[320px] md:bg-transparent'}
+                    flex-shrink-0 flex-col border-r border-white/5 transition-all duration-300
                 `}>
                     <div className="p-4 flex flex-col h-full">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-sm font-medium text-gray-400 px-2">Sources</h2>
+                            {/* Hide collapse toggle on mobile since we use tabs */}
                             <button
                                 onClick={() => setIsSourcesCollapsed(!isSourcesCollapsed)}
-                                className="p-2 text-gray-500 hover:text-white"
+                                className="hidden md:block p-2 text-gray-500 hover:text-white"
                             >
                                 {isSourcesCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
                             </button>
@@ -235,7 +278,10 @@ export default function NotebookDashboard() {
                 </div>
 
                 {/* CENTER COLUMN: CONTENT (CHAT OR MIND MAP) */}
-                <div className="flex-1 flex flex-col overflow-hidden bg-[#0d0d0d] w-full">
+                <div className={`
+                    ${mobileTab === 'chat' ? 'flex w-full' : 'hidden'}
+                    md:flex flex-col overflow-hidden bg-[#0d0d0d] flex-1
+                `}>
                     <div className="flex-1 overflow-y-auto p-4 md:px-12 md:py-8 custom-scrollbar relative">
                         {activeTool === "Mind Map" && flowchartStatus === 'completed' ? (
                             <div className="h-full">
@@ -310,57 +356,87 @@ export default function NotebookDashboard() {
                         )}
                     </div>
 
-                    <div className="p-4 md:p-6 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d] to-transparent">
-                        <div className="max-w-3xl mx-auto">
-                            <div className="bg-[#1a1a1a] rounded-3xl border border-white/10 p-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-                                <div className="flex items-center px-4">
-                                    <input
-                                        type="text"
-                                        placeholder="Ask a question..."
-                                        className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-600 py-3 text-sm"
+                    {/* Floating Chat Input */}
+                    <div className={`fixed bottom-[72px] md:bottom-6 left-0 right-0 px-4 z-40 transition-all duration-300 ${mobileTab === 'chat' ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none md:translate-y-0 md:opacity-100 md:pointer-events-auto'}`}>
+                        <div className="max-w-3xl mx-auto w-full">
+                            <div className={`
+                                flex items-end gap-2 p-2 rounded-[32px] border transition-all duration-300 shadow-2xl
+                                ${isListening ? 'bg-[#1a1a1a] border-red-500/30' : 'bg-[#1a1a1a]/80 backdrop-blur-xl border-white/10 hover:border-white/20'}
+                            `}>
+                                <button
+                                    onClick={toggleListening}
+                                    className={`
+                                        w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-300
+                                        ${isListening
+                                            ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse'
+                                            : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}
+                                    `}
+                                >
+                                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                                </button>
+
+                                <div className="flex-1 py-3">
+                                    <textarea
+                                        ref={chatInputRef}
+                                        placeholder={isListening ? "Listening..." : "Ask anything..."}
+                                        className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-white placeholder:text-gray-500 text-base resize-none max-h-32 py-0 custom-scrollbar leading-6"
+                                        rows={1}
                                         value={localInputValue}
-                                        onChange={(e) => setLocalInputValue(e.target.value)}
+                                        onChange={(e) => {
+                                            setLocalInputValue(e.target.value);
+                                            // Auto-resize logic inside onChange as we check scrollHeight immediately
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+                                        }}
                                         onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && localInputValue.trim() && !isChatLoading) {
+                                            if (e.key === 'Enter' && !e.shiftKey && localInputValue.trim() && !isChatLoading) {
+                                                e.preventDefault();
                                                 handleSendMessage(localInputValue);
                                                 setLocalInputValue("");
+                                                // Reset height after sending
+                                                if (chatInputRef.current) chatInputRef.current.style.height = 'auto';
                                             }
                                         }}
+                                        style={{ height: '24px' }} // Initial height
                                     />
-                                    <div className="p-1 flex items-center gap-2">
-                                        <button className="hidden sm:block p-2 text-gray-500 hover:text-white transition-colors"><Mic size={18} /></button>
-                                        <button
-                                            disabled={!localInputValue.trim() || isChatLoading}
-                                            onClick={() => {
-                                                handleSendMessage(localInputValue);
-                                                setLocalInputValue("");
-                                            }}
-                                            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${localInputValue.trim() && !isChatLoading
-                                                ? "bg-white text-black hover:scale-105 active:scale-95 shadow-lg"
-                                                : "bg-white/5 text-gray-600 cursor-not-allowed"
-                                                }`}
-                                        >
-                                            <Sparkles size={18} />
-                                        </button>
-                                    </div>
                                 </div>
+
+                                <button
+                                    disabled={!localInputValue.trim() || isChatLoading}
+                                    onClick={() => {
+                                        handleSendMessage(localInputValue);
+                                        setLocalInputValue("");
+                                    }}
+                                    className={`
+                                        w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-300
+                                        ${localInputValue.trim() && !isChatLoading
+                                            ? "bg-white text-black hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                            : "bg-white/5 text-gray-600 cursor-not-allowed"}
+                                    `}
+                                >
+                                    {isChatLoading ? <RotateCw size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                                </button>
                             </div>
-                            <p className="text-[10px] text-gray-700 text-center mt-3 tracking-wider uppercase font-medium">NotebookLM can be inaccurate; please double check its responses.</p>
+                            <p className="text-[10px] text-gray-500 text-center mt-2 font-medium tracking-wide">
+                                NotebookLM can be inaccurate; please double check.
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 {/* RIGHT COLUMN: STUDIO */}
                 <div className={`
-                    ${isStudioCollapsed ? 'hidden md:flex md:w-14' : 'absolute inset-0 z-30 w-full bg-[#0a0a0a] md:static md:w-[400px] md:bg-transparent'}
-                    flex-shrink-0 flex flex-col border-l border-white/5 transition-all duration-300
+                    ${mobileTab === 'studio' ? 'flex w-full absolute inset-0 z-30 bg-[#0a0a0a] md:static' : 'hidden md:flex'}
+                    ${isStudioCollapsed ? 'md:w-14' : 'md:w-[400px] md:bg-transparent'}
+                    flex-shrink-0 flex-col border-l border-white/5 transition-all duration-300
                 `}>
                     <div className="p-4 flex flex-col h-full">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-sm font-medium text-gray-400 px-2">Studio</h2>
+                            {/* Hide collapse toggle on mobile */}
                             <button
                                 onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
-                                className="p-2 text-gray-500 hover:text-white"
+                                className="hidden md:block p-2 text-gray-500 hover:text-white"
                             >
                                 {isStudioCollapsed ? <PanelRightOpen size={18} /> : <PanelRightClose size={18} />}
                             </button>
@@ -383,8 +459,7 @@ export default function NotebookDashboard() {
                                             key={idx}
                                             onClick={() => {
                                                 tool.onClick && tool.onClick();
-                                                // On mobile, auto-close studio after clicking a tool
-                                                if (window.innerWidth < 768) setIsStudioCollapsed(true);
+                                                // On mobile, just perform action, no need to collapse studio since it's a tab
                                             }}
                                             className={`p-4 rounded-2xl border border-white/5 flex flex-col gap-4 transition-all relative overflow-hidden group shadow-sm ${tool.active ? 'bg-[#151515] hover:bg-[#1a1a1a] cursor-pointer' : 'bg-[#0d0d0d] opacity-40 cursor-not-allowed'}`}>
                                             <div className="flex items-center justify-between">
@@ -429,7 +504,7 @@ export default function NotebookDashboard() {
                                                 </div>
                                                 <button onClick={() => {
                                                     setActiveTool("Mind Map");
-                                                    if (window.innerWidth < 768) setIsStudioCollapsed(true);
+                                                    // Mobile logic handled by tab switching now
                                                 }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
                                                     <Maximize2 size={18} />
                                                 </button>
@@ -511,6 +586,31 @@ export default function NotebookDashboard() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Bottom Navigation Bar */}
+            <div className="md:hidden h-16 bg-[#0a0a0a] border-t border-white/5 flex items-center justify-around z-50 px-2 safe-area-bottom">
+                <button
+                    onClick={() => setMobileTab('sources')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-20 ${mobileTab === 'sources' ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    <FileText size={20} />
+                    <span className="text-[10px] font-medium">Sources</span>
+                </button>
+                <button
+                    onClick={() => setMobileTab('chat')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-20 ${mobileTab === 'chat' ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    <MessageSquare size={20} />
+                    <span className="text-[10px] font-medium">Chat</span>
+                </button>
+                <button
+                    onClick={() => setMobileTab('studio')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-20 ${mobileTab === 'studio' ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    <Sparkles size={20} />
+                    <span className="text-[10px] font-medium">Studio</span>
+                </button>
             </div>
         </div>
     );
