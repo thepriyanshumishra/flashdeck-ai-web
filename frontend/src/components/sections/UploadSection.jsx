@@ -18,7 +18,7 @@ export default function UploadSection({
             <div className="bg-[#151515] border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative">
 
                 {/* Header */}
-                <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-medium text-white mb-2">Add sources</h2>
                         <p className="text-gray-400 text-sm">Upload documents to create your notebook.</p>
@@ -28,12 +28,12 @@ export default function UploadSection({
                     </div>
                 </div>
 
-                <div className="p-8 min-h-[400px] flex flex-col">
+                <div className="p-6 md:p-8 min-h-[400px] flex flex-col">
 
                     {/* File Drop / List Area */}
                     <div className="flex-1">
                         {files.length === 0 ? (
-                            <div className="h-full border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center p-12 transition-colors hover:border-white/20 hover:bg-white/5 relative group">
+                            <div className="h-full border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center p-8 md:p-12 transition-colors hover:border-white/20 hover:bg-white/5 relative group">
                                 <input
                                     type="file"
                                     accept=".pdf"
@@ -42,7 +42,7 @@ export default function UploadSection({
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     onClick={(e) => { e.target.value = null; }}
                                 />
-                                <div className="w-20 h-20 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-6 border border-white/5 group-hover:scale-105 transition-transform">
+                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-6 border border-white/5 group-hover:scale-105 transition-transform">
                                     <Plus size={32} className="text-gray-500" />
                                 </div>
                                 <h3 className="text-lg font-medium text-white mb-2">Upload Files</h3>
@@ -121,12 +121,12 @@ export default function UploadSection({
                     )}
 
                     {/* Footer / Actions */}
-                    <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                        <div className="text-xs text-gray-500">
+                    <div className="mt-8 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
+                        <div className="text-xs text-gray-500 text-center md:text-left w-full md:w-auto">
                             {files.length > 0 ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Supported: PDF (Max 200MB)'}
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-end">
                             {files.length > 0 && (
                                 <button
                                     onClick={handleClearAll}
@@ -140,7 +140,7 @@ export default function UploadSection({
                                 disabled={files.length === 0 || loading}
                                 onClick={handleGenerate}
                                 className={cn(
-                                    "px-8 py-2.5 rounded-full text-sm font-medium transition-all",
+                                    "px-8 py-2.5 rounded-full text-sm font-medium transition-all w-full md:w-auto flex justify-center",
                                     files.length > 0
                                         ? "bg-white text-black hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
                                         : "bg-white/10 text-gray-500 cursor-not-allowed"

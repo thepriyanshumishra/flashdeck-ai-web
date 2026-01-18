@@ -115,43 +115,64 @@ export default function NotebookDashboard() {
             <Navbar />
 
             {/* Sub-header for Notebook Title & Actions */}
-            <div className="px-6 py-3 border-b border-white/5 flex items-center justify-between bg-[#0a0a0a]">
+            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-[#0a0a0a]">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                    {/* Mobile Toggle for Sources */}
+                    <button
+                        className="md:hidden p-2 -ml-2 text-gray-400"
+                        onClick={() => setIsSourcesCollapsed(!isSourcesCollapsed)}
+                    >
+                        {isSourcesCollapsed ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+                    </button>
+
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center hidden sm:flex">
                         <BookOpen size={18} className="text-indigo-400" />
                     </div>
-                    <h1 className="text-sm font-medium text-white">{deckName || "Untitled Notebook"}</h1>
+                    <h1 className="text-sm font-medium text-white max-w-[150px] sm:max-w-none truncate">{deckName || "Untitled Notebook"}</h1>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 sm:gap-3">
                     <button
                         onClick={handleCreateNew}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-all text-xs border border-white/5"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-all text-xs border border-white/5 whitespace-nowrap"
                     >
-                        <Plus size={14} /> Create notebook
+                        <Plus size={14} /> <span className="hidden sm:inline">Create notebook</span>
                     </button>
-                    <button className="p-1.5 text-gray-500 hover:text-white"><BarChart2 size={18} /></button>
-                    <button className="p-1.5 text-gray-500 hover:text-white"><Share2 size={18} /></button>
-                    <button className="p-1.5 text-gray-500 hover:text-white"><Settings size={18} /></button>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 ml-2"></div>
+                    {/* Mobile Toggle for Studio */}
+                    <button
+                        className="md:hidden p-2 text-gray-400"
+                        onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
+                    >
+                        {isStudioCollapsed ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
+                    </button>
+
+                    <div className="hidden sm:flex items-center gap-3">
+                        <button className="p-1.5 text-gray-500 hover:text-white"><BarChart2 size={18} /></button>
+                        <button className="p-1.5 text-gray-500 hover:text-white"><Share2 size={18} /></button>
+                        <button className="p-1.5 text-gray-500 hover:text-white"><Settings size={18} /></button>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 ml-2"></div>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden relative">
                 {/* LEFT COLUMN: SOURCES */}
-                <div className={`${isSourcesCollapsed ? 'w-14' : 'w-[320px]'} flex-shrink-0 flex flex-col border-r border-white/5 bg-[#0a0a0a] transition-all duration-300 relative`}>
+                <div className={`
+                    ${isSourcesCollapsed ? 'hidden md:flex md:w-14' : 'absolute inset-0 z-30 w-full bg-[#0a0a0a] md:static md:w-[320px] md:bg-transparent'}
+                    flex-shrink-0 flex flex-col border-r border-white/5 transition-all duration-300
+                `}>
                     <div className="p-4 flex flex-col h-full">
                         <div className="flex items-center justify-between mb-6">
-                            {!isSourcesCollapsed && <h2 className="text-sm font-medium text-gray-400 px-2">Sources</h2>}
+                            <h2 className="text-sm font-medium text-gray-400 px-2">Sources</h2>
                             <button
                                 onClick={() => setIsSourcesCollapsed(!isSourcesCollapsed)}
-                                className={`p-2 text-gray-500 hover:text-white ${isSourcesCollapsed ? 'mx-auto' : ''}`}
+                                className="p-2 text-gray-500 hover:text-white"
                             >
                                 {isSourcesCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
                             </button>
                         </div>
 
                         {!isSourcesCollapsed && (
-                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pb-20 md:pb-0">
                                 <input
                                     type="file"
                                     multiple
@@ -199,7 +220,7 @@ export default function NotebookDashboard() {
                                                 </div>
                                                 <button
                                                     onClick={() => handleRemoveFile(idx)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-400 transition-opacity"
+                                                    className="opacity-100 md:opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-400 transition-opacity"
                                                 >
                                                     <Trash2 size={14} />
                                                 </button>
@@ -214,31 +235,31 @@ export default function NotebookDashboard() {
                 </div>
 
                 {/* CENTER COLUMN: CONTENT (CHAT OR MIND MAP) */}
-                <div className="flex-1 flex flex-col overflow-hidden bg-[#0d0d0d]">
-                    <div className="flex-1 overflow-y-auto p-6 md:px-12 md:py-8 custom-scrollbar relative">
+                <div className="flex-1 flex flex-col overflow-hidden bg-[#0d0d0d] w-full">
+                    <div className="flex-1 overflow-y-auto p-4 md:px-12 md:py-8 custom-scrollbar relative">
                         {activeTool === "Mind Map" && flowchartStatus === 'completed' ? (
                             <div className="h-full">
                                 <ExpandableMindMap data={flowcharts[0]} />
                             </div>
                         ) : messages.length === 0 && !isChatLoading ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto space-y-6">
+                            <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto space-y-6 px-4">
                                 <div className="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center animate-float">
                                     <Brain className="text-indigo-400" size={40} />
                                 </div>
                                 <div>
-                                    <h1 className="text-3xl font-semibold text-white mb-3">Your AI Study Buddy</h1>
-                                    <p className="text-gray-500 leading-relaxed">Ask anything about your sources, or use the Studio tools to generate interactive learning materials.</p>
+                                    <h1 className="text-2xl md:text-3xl font-semibold text-white mb-3">Your AI Study Buddy</h1>
+                                    <p className="text-gray-500 leading-relaxed text-sm md:text-base">Ask anything about your sources, or use the Studio tools to generate interactive learning materials.</p>
                                 </div>
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 flex-wrap justify-center">
                                     <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-400">Summarize these docs</div>
                                     <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-400">Key takeaway points</div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="max-w-3xl mx-auto w-full space-y-8 pb-32">
+                            <div className="max-w-3xl mx-auto w-full space-y-6 md:space-y-8 pb-32">
                                 {messages.map((msg, i) => (
                                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[90%] rounded-3xl p-5 ${msg.role === 'user'
+                                        <div className={`max-w-[95%] md:max-w-[90%] rounded-3xl p-4 md:p-5 ${msg.role === 'user'
                                             ? 'bg-indigo-600/10 text-white border border-indigo-500/20 shadow-[0_4px_20px_rgba(99,102,241,0.05)]'
                                             : 'bg-transparent text-gray-300 chat-markdown'}`}>
                                             <ReactMarkdown
@@ -248,13 +269,13 @@ export default function NotebookDashboard() {
                                                     strong: ({ ...props }) => <strong className="font-bold text-white/95" {...props} />,
                                                     em: ({ ...props }) => <em className="italic text-gray-400" {...props} />,
                                                     blockquote: ({ ...props }) => <blockquote className="border-l-2 border-indigo-500/50 pl-4 my-4 italic text-gray-400 bg-indigo-500/5 py-1" {...props} />,
-                                                    p: ({ ...props }) => <p className="mb-4 last:mb-0 leading-relaxed text-[15px] text-gray-300/90" {...props} />,
+                                                    p: ({ ...props }) => <p className="mb-4 last:mb-0 leading-relaxed text-[14px] md:text-[15px] text-gray-300/90" {...props} />,
                                                     ul: ({ ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
                                                     ol: ({ ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
-                                                    li: ({ ...props }) => <li className="text-[15px]" {...props} />,
-                                                    h1: ({ ...props }) => <h1 className="text-2xl font-bold mb-4 text-white" {...props} />,
-                                                    h2: ({ ...props }) => <h2 className="text-xl font-bold mb-3 text-white" {...props} />,
-                                                    h3: ({ ...props }) => <h3 className="text-lg font-bold mb-3 text-white" {...props} />,
+                                                    li: ({ ...props }) => <li className="text-[14px] md:text-[15px]" {...props} />,
+                                                    h1: ({ ...props }) => <h1 className="text-xl md:text-2xl font-bold mb-4 text-white" {...props} />,
+                                                    h2: ({ ...props }) => <h2 className="text-lg md:text-xl font-bold mb-3 text-white" {...props} />,
+                                                    h3: ({ ...props }) => <h3 className="text-base md:text-lg font-bold mb-3 text-white" {...props} />,
                                                     table: ({ ...props }) => (
                                                         <div className="my-6 overflow-x-auto rounded-2xl border border-white/10 bg-[#121212]">
                                                             <table className="w-full text-left border-collapse text-sm" {...props} />
@@ -267,7 +288,7 @@ export default function NotebookDashboard() {
                                                     code: ({ inline, ...props }) => (
                                                         inline
                                                             ? <span className="font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded text-xs" {...props} />
-                                                            : <pre className="font-mono text-gray-300 whitespace-pre-wrap p-4 bg-[#121212] rounded-2xl border border-white/5 my-4" {...props} />
+                                                            : <pre className="font-mono text-gray-300 whitespace-pre-wrap p-4 bg-[#121212] rounded-2xl border border-white/5 my-4 overflow-x-auto" {...props} />
                                                     )
                                                 }}
                                             >
@@ -289,13 +310,13 @@ export default function NotebookDashboard() {
                         )}
                     </div>
 
-                    <div className="p-6 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d] to-transparent">
+                    <div className="p-4 md:p-6 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d] to-transparent">
                         <div className="max-w-3xl mx-auto">
                             <div className="bg-[#1a1a1a] rounded-3xl border border-white/10 p-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
                                 <div className="flex items-center px-4">
                                     <input
                                         type="text"
-                                        placeholder="Ask a question about your sources..."
+                                        placeholder="Ask a question..."
                                         className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-600 py-3 text-sm"
                                         value={localInputValue}
                                         onChange={(e) => setLocalInputValue(e.target.value)}
@@ -307,7 +328,7 @@ export default function NotebookDashboard() {
                                         }}
                                     />
                                     <div className="p-1 flex items-center gap-2">
-                                        <button className="p-2 text-gray-500 hover:text-white transition-colors"><Mic size={18} /></button>
+                                        <button className="hidden sm:block p-2 text-gray-500 hover:text-white transition-colors"><Mic size={18} /></button>
                                         <button
                                             disabled={!localInputValue.trim() || isChatLoading}
                                             onClick={() => {
@@ -330,20 +351,23 @@ export default function NotebookDashboard() {
                 </div>
 
                 {/* RIGHT COLUMN: STUDIO */}
-                <div className={`${isStudioCollapsed ? 'w-14' : 'w-[400px]'} flex-shrink-0 flex flex-col bg-[#0a0a0a] border-l border-white/5 transition-all duration-300`}>
+                <div className={`
+                    ${isStudioCollapsed ? 'hidden md:flex md:w-14' : 'absolute inset-0 z-30 w-full bg-[#0a0a0a] md:static md:w-[400px] md:bg-transparent'}
+                    flex-shrink-0 flex flex-col border-l border-white/5 transition-all duration-300
+                `}>
                     <div className="p-4 flex flex-col h-full">
                         <div className="flex items-center justify-between mb-6">
-                            {!isStudioCollapsed && <h2 className="text-sm font-medium text-gray-400 px-2">Studio</h2>}
+                            <h2 className="text-sm font-medium text-gray-400 px-2">Studio</h2>
                             <button
                                 onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
-                                className={`p-2 text-gray-500 hover:text-white ${isStudioCollapsed ? 'mx-auto' : ''}`}
+                                className="p-2 text-gray-500 hover:text-white"
                             >
                                 {isStudioCollapsed ? <PanelRightOpen size={18} /> : <PanelRightClose size={18} />}
                             </button>
                         </div>
 
                         {!isStudioCollapsed && (
-                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pb-20 md:pb-0">
                                 <div className="bg-indigo-600 rounded-2xl p-4 relative overflow-hidden flex-shrink-0 shadow-lg shadow-indigo-500/10">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-10 -mt-10"></div>
                                     <p className="text-white/80 text-xs mb-1">Create an Audio Overview in:</p>
@@ -357,7 +381,11 @@ export default function NotebookDashboard() {
                                     {studioTools.map((tool, idx) => (
                                         <div
                                             key={idx}
-                                            onClick={tool.onClick}
+                                            onClick={() => {
+                                                tool.onClick && tool.onClick();
+                                                // On mobile, auto-close studio after clicking a tool
+                                                if (window.innerWidth < 768) setIsStudioCollapsed(true);
+                                            }}
                                             className={`p-4 rounded-2xl border border-white/5 flex flex-col gap-4 transition-all relative overflow-hidden group shadow-sm ${tool.active ? 'bg-[#151515] hover:bg-[#1a1a1a] cursor-pointer' : 'bg-[#0d0d0d] opacity-40 cursor-not-allowed'}`}>
                                             <div className="flex items-center justify-between">
                                                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${tool.active ? 'bg-indigo-500/10 text-indigo-400' : 'bg-white/5 text-gray-600'}`}>
@@ -385,7 +413,7 @@ export default function NotebookDashboard() {
                                                     <h4 className="text-xs font-medium text-gray-200 mb-1">Study Flashcards</h4>
                                                     <p className="text-[10px] text-gray-500 truncate">{cards.length} cards • Ready to review</p>
                                                 </div>
-                                                <button onClick={() => navigate('/notebook/flashcards')} className="opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                <button onClick={() => navigate('/notebook/flashcards')} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
                                                     <PlayCircle size={18} />
                                                 </button>
                                             </div>
@@ -399,7 +427,10 @@ export default function NotebookDashboard() {
                                                     <h4 className="text-xs font-medium text-gray-200 mb-1">Interactive Mind Map</h4>
                                                     <p className="text-[10px] text-gray-500 truncate">Concept hierarchy generated</p>
                                                 </div>
-                                                <button onClick={() => setActiveTool("Mind Map")} className="opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                <button onClick={() => {
+                                                    setActiveTool("Mind Map");
+                                                    if (window.innerWidth < 768) setIsStudioCollapsed(true);
+                                                }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
                                                     <Maximize2 size={18} />
                                                 </button>
                                             </div>
@@ -413,7 +444,7 @@ export default function NotebookDashboard() {
                                                     <h4 className="text-xs font-medium text-gray-200 mb-1">Interactive Quiz</h4>
                                                     <p className="text-[10px] text-gray-500 truncate">{quiz.length} questions • Ready to test</p>
                                                 </div>
-                                                <button onClick={() => navigate('/notebook/quiz')} className="opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                <button onClick={() => navigate('/notebook/quiz')} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
                                                     <PlayCircle size={18} />
                                                 </button>
                                             </div>
