@@ -13,3 +13,5 @@ langchain-groq
 langgraph
 genanki
 python-multipart
+langchain-text-splitters
+langsmith
