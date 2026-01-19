@@ -116,6 +116,62 @@ async def generate_quiz(req: TaskRequest):
         print(f"Quiz Gen Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/generate/report")
+async def generate_report(req: TaskRequest):
+    print(f"--- Triggering Lazy Report Generation for: {req.deck_name} ---")
+    from agent_graph import run_selective_node
+    try:
+        result = run_selective_node(req.text, "report")
+        return {
+            "status": "success",
+            "report": result.get("report", "")
+        }
+    except Exception as e:
+        print(f"Report Gen Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate/slides")
+async def generate_slides(req: TaskRequest):
+    print(f"--- Triggering Lazy Slides Generation for: {req.deck_name} ---")
+    from agent_graph import run_selective_node
+    try:
+        result = run_selective_node(req.text, "slides")
+        return {
+            "status": "success",
+            "slides": result.get("slides", [])
+        }
+    except Exception as e:
+        print(f"Slides Gen Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate/table")
+async def generate_table(req: TaskRequest):
+    print(f"--- Triggering Lazy Table Generation for: {req.deck_name} ---")
+    from agent_graph import run_selective_node
+    try:
+        result = run_selective_node(req.text, "table")
+        return {
+            "status": "success",
+            "table": result.get("table", [])
+        }
+    except Exception as e:
+        print(f"Table Gen Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate/infographic")
+async def generate_infographic(req: TaskRequest):
+    print(f"--- Triggering Lazy Infographic Generation for: {req.deck_name} ---")
+    from agent_graph import run_selective_node
+    try:
+        result = run_selective_node(req.text, "infographic")
+        return {
+            "status": "success",
+            "infographic": result.get("infographic", "")
+        }
+    except Exception as e:
+        print(f"Infographic Gen Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/analyze/quiz")
 async def analyze_quiz(req: AnalysisRequest):
     print(f"--- Analyzing Quiz Results for Review Cards ---")

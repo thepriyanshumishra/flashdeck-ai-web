@@ -18,51 +18,112 @@ export default function MermaidEditor({ code, onSave, readOnly = false }) {
         setCurrentCode(code)
     }, [code])
 
+    // Silence Mermaid's global error handler
+    useEffect(() => {
+        mermaid.parseError = (err, hash) => {
+            // console.debug('Mermaid parse error suppressed:', err);
+        };
+    }, []);
+
     const renderDiagram = React.useCallback(async () => {
         if (!graphRef.current) return;
+        if (!currentCode || currentCode.trim().length === 0) return;
 
-        try {
-            // Clear previous content
-            graphRef.current.innerHTML = '';
+        // Cleanup previous Mermaid error artifacts from the DOM
+        const cleanupMermaidErrors = () => {
+            const idsToDelete = document.querySelectorAll('[id^="dmermaid"], [id^="mermaid-error"]');
+            idsToDelete.forEach(el => el.remove());
 
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: 'dark',
-                securityLevel: 'loose',
-                // This helps prevent error injection into body
-                suppressError: true,
-                themeVariables: {
-                    primaryColor: '#6366f1',
-                    primaryTextColor: '#fff',
-                    primaryBorderColor: '#6366f1',
-                    lineColor: '#6366f1',
-                    secondaryColor: '#1e1e1e',
-                    tertiaryColor: '#1a1a1a',
-                    mainBkg: '#0a0a0a',
-                    nodeBorder: '#6366f1',
-                    clusterBkg: '#111'
-                }
-            })
+            const classesToDelete = document.querySelectorAll('.error-icon, .error-text, .mermaid-error');
+            classesToDelete.forEach(el => el.remove());
+        };
+        cleanupMermaidErrors();
 
-            const uniqueId = 'mermaid-svg-' + Math.random().toString(36).substr(2, 9);
-            const { svg } = await mermaid.render(uniqueId, currentCode);
-
-            if (graphRef.current) {
-                graphRef.current.innerHTML = svg;
-                const svgElement = graphRef.current.querySelector('svg');
-                if (svgElement) {
-                    svgElement.style.maxWidth = 'none';
-                    svgElement.style.height = 'auto';
-                }
-                setError(null);
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            securityLevel: 'loose',
+            suppressError: true, // We handle errors manually
+            themeVariables: {
+                primaryColor: '#6366f1',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#6366f1',
+                lineColor: '#6366f1',
+                secondaryColor: '#1e1e1e',
+                tertiaryColor: '#1a1a1a',
+                mainBkg: '#0a0a0a',
+                nodeBorder: '#6366f1',
+                clusterBkg: '#111'
             }
-        } catch (e) {
-            console.error("Mermaid Render Error:", e);
-            setError("The generated structure contains syntax errors that Mermaid.js cannot render.");
+        });
 
-            // Clean up any error divs mermaid might have injected into the body
-            const errorDivs = document.querySelectorAll('div[id^="dmermaid"]');
-            errorDivs.forEach(div => div.remove());
+        const attemptRender = async (codeToRender) => {
+            try {
+                // Clear previous content first
+                graphRef.current.innerHTML = '';
+
+                const uniqueId = 'mermaid-svg-' + Math.random().toString(36).substr(2, 9);
+                const { svg } = await mermaid.render(uniqueId, codeToRender);
+
+                if (graphRef.current) {
+                    graphRef.current.innerHTML = svg;
+                    const svgElement = graphRef.current.querySelector('svg');
+                    if (svgElement) {
+                        svgElement.style.maxWidth = '100%';
+                        svgElement.style.height = 'auto';
+                        svgElement.removeAttribute('height'); // Remove fixed height to prevent red box scaling
+                    }
+                }
+
+                setError(null);
+                // Success - make sure no error artifacts popped up during render
+                setTimeout(cleanupMermaidErrors, 50);
+                return true;
+            } catch (e) {
+                // Remove any partial render garbage
+                if (graphRef.current) graphRef.current.innerHTML = '';
+                cleanupMermaidErrors();
+                return false;
+            }
+        };
+
+        // 1. Try rendering original code
+        if (await attemptRender(currentCode)) return;
+
+        // 2. Try auto-fixing common issues
+        console.warn("Mermaid render failed, attempting auto-fix...");
+        let fixedCode = currentCode
+            .replace(/\[([^"\]]+?)\]/g, '["$1"]')
+            .replace(/\(([^\)"\)]+?)\)/g, '("$1")')
+            .replace(/note\s+".*?"\s*$/gm, '')
+            .replace(/-->/g, '-->')
+            .trim();
+
+        if (!fixedCode.startsWith('graph') && !fixedCode.startsWith('flowchart') && !fixedCode.startsWith('mindmap') &&
+            !fixedCode.startsWith('pie') && !fixedCode.startsWith('stateDiagram') && !fixedCode.startsWith('classDiagram') &&
+            !fixedCode.startsWith('erDiagram') && !fixedCode.startsWith('gantt') && !fixedCode.startsWith('sequenceDiagram')) {
+            fixedCode = `graph TD\n${fixedCode}`;
+        }
+
+        if (await attemptRender(fixedCode)) {
+            console.log("Auto-fix successful!");
+            return;
+        }
+
+        // 3. Last Resort: Render a fallback error graph
+        console.error("Auto-fix failed, rendering fallback.");
+        const fallbackCode = `graph TD
+            Error[Syntax Error] --> Detail[The AI generated invalid syntax]
+            style Error fill:#ef4444,stroke:#7f1d1d,color:#fff
+            style Detail fill:#1f2937,stroke:#374151,color:#fff`;
+
+        if (await attemptRender(fallbackCode)) {
+            setError(null);
+        } else {
+            // If even fallback fails, we MUST set error state to show React UI and hide the red box artifact
+            console.error("Critical: Fallback render failed.");
+            setError("Unknown Syntax Error");
+            cleanupMermaidErrors();
         }
     }, [currentCode]);
 
@@ -160,10 +221,7 @@ export default function MermaidEditor({ code, onSave, readOnly = false }) {
                         <Edit2 size={16} />
                     </button>
                 )}
-                <div className="flex bg-white/5 rounded-2xl p-1 border border-white/5">
-                    <button onClick={() => handleDownload('png')} className="px-3 py-1.5 text-[10px] font-bold text-gray-500 hover:text-indigo-400">PNG</button>
-                    <button onClick={() => handleDownload('jpeg')} className="px-3 py-1.5 text-[10px] font-bold text-gray-500 hover:text-indigo-400">JPG</button>
-                </div>
+
             </div>
 
             {/* Viewport */}

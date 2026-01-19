@@ -95,6 +95,12 @@ body {
   }
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+
+/* Mermaid Error Override - Hides the persistent syntax error notifications */
+[id^="dmermaid"] {
+  display: none !important;
+}
+
+.error-icon {
+  display: none !important;
 }

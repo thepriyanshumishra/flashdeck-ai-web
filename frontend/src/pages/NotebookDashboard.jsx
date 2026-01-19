@@ -18,6 +18,10 @@ import {
 import Navbar from '../components/layout/Navbar';
 import MermaidEditor from '../components/MermaidEditor';
 import ExpandableMindMap from '../components/ExpandableMindMap';
+import ReportViewer from '../components/ReportViewer';
+import SlideDeckViewer from '../components/SlideDeckViewer';
+import DataTableView from '../components/DataTableView';
+import InfographicViewer from '../components/InfographicViewer';
 
 export default function NotebookDashboard() {
     const navigate = useNavigate();
@@ -43,7 +47,11 @@ export default function NotebookDashboard() {
         handleSendMessage,
         hasInitialChatRun, setHasInitialChatRun,
         handleClearAll,
-        quiz, quizStatus
+        quiz, quizStatus,
+        report, reportStatus,
+        slides, slidesStatus,
+        table, tableStatus,
+        infographic, infographicStatus
     } = useDeck();
 
     const handleCreateNew = () => {
@@ -87,27 +95,45 @@ export default function NotebookDashboard() {
         {
             name: "Mind Map", icon: Network, active: true, badge: null,
             onClick: () => {
-                setActiveTool("Mind Map");
-                if (flowchartStatus === 'idle') triggerGeneration('flowchart');
+                if (flowchartStatus !== 'generating') triggerGeneration('flowchart');
             }
         },
-        { name: "Reports", icon: FileText, active: false, badge: null },
+        {
+            name: "Reports", icon: FileText, active: true, badge: null,
+            onClick: () => {
+                if (reportStatus !== 'generating') triggerGeneration('report');
+            }
+        },
         {
             name: "Flashcards", icon: CreditCard, active: true, badge: null,
             onClick: () => {
-                // Now only triggers generation, stays on current view
-                if (cardsStatus === 'idle') triggerGeneration('cards');
+                if (cardsStatus !== 'generating') triggerGeneration('cards');
             }
         },
         {
             name: "Quiz", icon: PieChart, active: true, badge: null,
             onClick: () => {
-                if (quizStatus === 'idle') triggerGeneration('quiz');
+                if (quizStatus !== 'generating') triggerGeneration('quiz');
             }
         },
-        { name: "Infographic", icon: PieChart, active: false, badge: null },
-        { name: "Slide Deck", icon: Presentation, active: false, badge: null },
-        { name: "Data Table", icon: Table, active: false, badge: null },
+        {
+            name: "Infographic", icon: PieChart, active: true, badge: null,
+            onClick: () => {
+                if (infographicStatus !== 'generating') triggerGeneration('infographic');
+            }
+        },
+        {
+            name: "Slide Deck", icon: Presentation, active: true, badge: null,
+            onClick: () => {
+                if (slidesStatus !== 'generating') triggerGeneration('slides');
+            }
+        },
+        {
+            name: "Data Table", icon: Table, active: true, badge: null,
+            onClick: () => {
+                if (tableStatus !== 'generating') triggerGeneration('table');
+            }
+        },
     ];
 
     const [mobileTab, setMobileTab] = useState('chat');
@@ -285,7 +311,43 @@ export default function NotebookDashboard() {
                     <div className="flex-1 overflow-y-auto p-4 md:px-12 md:py-8 custom-scrollbar relative">
                         {activeTool === "Mind Map" && flowchartStatus === 'completed' ? (
                             <div className="h-full">
-                                <ExpandableMindMap data={flowcharts[0]} />
+                                <ExpandableMindMap
+                                    data={flowcharts[0]}
+                                    onRegenerate={() => triggerGeneration('flowchart')}
+                                    onClose={() => setActiveTool(null)}
+                                />
+                            </div>
+                        ) : activeTool === "Reports" && reportStatus === 'completed' ? (
+                            <div className="h-full">
+                                <ReportViewer
+                                    markdown={report}
+                                    onRegenerate={() => triggerGeneration('report')}
+                                    onClose={() => setActiveTool(null)}
+                                />
+                            </div>
+                        ) : activeTool === "Slide Deck" && slidesStatus === 'completed' ? (
+                            <div className="h-full">
+                                <SlideDeckViewer
+                                    data={slides}
+                                    onRegenerate={() => triggerGeneration('slides')}
+                                    onClose={() => setActiveTool(null)}
+                                />
+                            </div>
+                        ) : activeTool === "Data Table" && tableStatus === 'completed' ? (
+                            <div className="h-full">
+                                <DataTableView
+                                    data={table}
+                                    onRegenerate={() => triggerGeneration('table')}
+                                    onClose={() => setActiveTool(null)}
+                                />
+                            </div>
+                        ) : activeTool === "Infographic" && infographicStatus === 'completed' ? (
+                            <div className="h-full">
+                                <InfographicViewer
+                                    code={infographic}
+                                    onRegenerate={() => triggerGeneration('infographic')}
+                                    onClose={() => setActiveTool(null)}
+                                />
                             </div>
                         ) : messages.length === 0 && !isChatLoading ? (
                             <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto space-y-6 px-4">
@@ -504,7 +566,7 @@ export default function NotebookDashboard() {
                                                 </div>
                                                 <button onClick={() => {
                                                     setActiveTool("Mind Map");
-                                                    // Mobile logic handled by tab switching now
+                                                    setMobileTab('chat');
                                                 }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
                                                     <Maximize2 size={18} />
                                                 </button>
@@ -524,15 +586,84 @@ export default function NotebookDashboard() {
                                                 </button>
                                             </div>
                                         )}
-                                        {cardsStatus !== 'completed' && flowchartStatus !== 'completed' && quizStatus !== 'completed' && (
-                                            <div className="p-8 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
-                                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3 text-gray-600">
-                                                    <BookOpen size={24} />
+                                        {reportStatus === 'completed' && report && (
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex items-start gap-4 hover:border-white/10 transition-all group">
+                                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 flex-shrink-0">
+                                                    <FileText size={20} />
                                                 </div>
-                                                <p className="text-xs text-gray-500 font-medium">No notes yet</p>
-                                                <p className="text-[10px] text-gray-600 mt-1">Select a tool to generate</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-medium text-gray-200 mb-1">Deep Research Report</h4>
+                                                    <p className="text-[10px] text-gray-500 truncate">Comprehensive analysis ready</p>
+                                                </div>
+                                                <button onClick={() => {
+                                                    setActiveTool("Reports");
+                                                    setMobileTab('chat');
+                                                }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                    <Maximize2 size={18} />
+                                                </button>
                                             </div>
                                         )}
+                                        {slidesStatus === 'completed' && slides && slides.length > 0 && (
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex items-start gap-4 hover:border-white/10 transition-all group">
+                                                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 flex-shrink-0">
+                                                    <Presentation size={20} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-medium text-gray-200 mb-1">Slide Deck</h4>
+                                                    <p className="text-[10px] text-gray-500 truncate">{slides.length} slides • Ready to present</p>
+                                                </div>
+                                                <button onClick={() => {
+                                                    setActiveTool("Slide Deck");
+                                                    setMobileTab('chat');
+                                                }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                    <PlayCircle size={18} />
+                                                </button>
+                                            </div>
+                                        )}
+                                        {tableStatus === 'completed' && table && table.rows && table.columns && (
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex items-start gap-4 hover:border-white/10 transition-all group">
+                                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 flex-shrink-0">
+                                                    <Table size={20} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-medium text-gray-200 mb-1">Data Table</h4>
+                                                    <p className="text-[10px] text-gray-500 truncate">Structured data extracted</p>
+                                                </div>
+                                                <button onClick={() => {
+                                                    setActiveTool("Data Table");
+                                                    setMobileTab('chat');
+                                                }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                    <Maximize2 size={18} />
+                                                </button>
+                                            </div>
+                                        )}
+                                        {infographicStatus === 'completed' && infographic && (
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex items-start gap-4 hover:border-white/10 transition-all group">
+                                                <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 flex-shrink-0">
+                                                    <PieChart size={20} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-medium text-gray-200 mb-1">Infographic</h4>
+                                                    <p className="text-[10px] text-gray-500 truncate">Visual data representation</p>
+                                                </div>
+                                                <button onClick={() => {
+                                                    setActiveTool("Infographic");
+                                                    setMobileTab('chat');
+                                                }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                    <Maximize2 size={18} />
+                                                </button>
+                                            </div>
+                                        )}
+                                        {cardsStatus !== 'completed' && flowchartStatus !== 'completed' && quizStatus !== 'completed' &&
+                                            reportStatus !== 'completed' && slidesStatus !== 'completed' && tableStatus !== 'completed' && infographicStatus !== 'completed' && (
+                                                <div className="p-8 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
+                                                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3 text-gray-600">
+                                                        <BookOpen size={24} />
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 font-medium">No notes yet</p>
+                                                    <p className="text-[10px] text-gray-600 mt-1">Select a tool to generate</p>
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
 
@@ -572,14 +703,60 @@ export default function NotebookDashboard() {
                                                 </div>
                                             </div>
                                         )}
-                                        {cardsStatus === 'idle' && flowchartStatus === 'idle' && quizStatus === 'idle' && (
-                                            <div className="flex items-center gap-3 opacity-30">
-                                                <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-gray-500">
-                                                    <Clock size={14} />
+                                        {reportStatus === 'generating' && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                                    <RotateCw className="animate-spin" size={14} />
                                                 </div>
-                                                <p className="text-xs font-medium text-gray-500 italic">No background tasks</p>
+                                                <div>
+                                                    <p className="text-xs font-medium text-gray-300">Researching Report...</p>
+                                                    <p className="text-[10px] text-gray-500">Analyzing deep context</p>
+                                                </div>
                                             </div>
                                         )}
+                                        {slidesStatus === 'generating' && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400">
+                                                    <RotateCw className="animate-spin" size={14} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-medium text-gray-300">Designing Slides...</p>
+                                                    <p className="text-[10px] text-gray-500">Structuring presentation</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {tableStatus === 'generating' && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                                    <RotateCw className="animate-spin" size={14} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-medium text-gray-300">Extracting Data...</p>
+                                                    <p className="text-[10px] text-gray-500">Formatting table rows</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {infographicStatus === 'generating' && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-400">
+                                                    <RotateCw className="animate-spin" size={14} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-medium text-gray-300">Drawing Infographic...</p>
+                                                    <p className="text-[10px] text-gray-500">Visualizing data points</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {cardsStatus === 'idle' && flowchartStatus === 'idle' && quizStatus === 'idle' &&
+                                            reportStatus === 'idle' && slidesStatus === 'idle' && tableStatus === 'idle' && infographicStatus === 'idle' && (
+                                                <div className="flex items-center gap-3 opacity-30">
+                                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-gray-500">
+                                                        <Clock size={14} />
+                                                    </div>
+                                                    <p className="text-xs font-medium text-gray-500 italic">No background tasks</p>
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
                             </div>

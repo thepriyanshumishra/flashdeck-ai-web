@@ -23,7 +23,13 @@ export default function UploadPage() {
         setCardsStatus,
         setFlowchartStatus,
         setMessages,
-        setHasInitialChatRun
+        setHasInitialChatRun,
+        // New resets
+        setReport, setReportStatus,
+        setSlides, setSlidesStatus,
+        setTable, setTableStatus,
+        setInfographic, setInfographicStatus,
+        setQuiz, setQuizStatus
     } = useDeck();
 
     const onGenerateClick = async () => {
@@ -58,6 +64,13 @@ export default function UploadPage() {
             setMessages([]);
             setHasInitialChatRun(false);
             if (data.deck_id) setDeckId(data.deck_id);
+
+            // Reset Studio Features
+            setReport(""); setReportStatus('idle');
+            setSlides([]); setSlidesStatus('idle');
+            setTable([]); setTableStatus('idle');
+            setInfographic(""); setInfographicStatus('idle');
+            setQuiz([]); setQuizStatus('idle');
 
             // Navigate to the Notebook Dashboard
             navigate('/notebook');

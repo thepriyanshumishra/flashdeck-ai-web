@@ -49,6 +49,26 @@ export function DeckProvider({ children }) {
         return saved ? JSON.parse(saved) : [];
     });
 
+    // New Studio Features State
+    const [report, setReport] = useState(() => localStorage.getItem(`report_${initialDeckName}`) || "");
+    const [reportStatus, setReportStatus] = useState(() => localStorage.getItem(`reportStatus_${initialDeckName}`) || 'idle');
+
+    const [slides, setSlides] = useState(() => {
+        const saved = localStorage.getItem(`slides_${initialDeckName}`);
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [slidesStatus, setSlidesStatus] = useState(() => localStorage.getItem(`slidesStatus_${initialDeckName}`) || 'idle');
+
+    const [table, setTable] = useState(() => {
+        const saved = localStorage.getItem(`table_${initialDeckName}`);
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [tableStatus, setTableStatus] = useState(() => localStorage.getItem(`tableStatus_${initialDeckName}`) || 'idle');
+
+    const [infographic, setInfographic] = useState(() => localStorage.getItem(`infographic_${initialDeckName}`) || "");
+    const [infographicStatus, setInfographicStatus] = useState(() => localStorage.getItem(`infographicStatus_${initialDeckName}`) || 'idle');
+
+
     // Persist to localStorage
     useEffect(() => {
         if (deckName) {
@@ -62,11 +82,21 @@ export function DeckProvider({ children }) {
             localStorage.setItem(`hasInitialChatRun_${deckName}`, hasInitialChatRun ? 'true' : 'false');
             localStorage.setItem(`quiz_${deckName}`, JSON.stringify(quiz));
             localStorage.setItem(`reviewCards_${deckName}`, JSON.stringify(reviewCards));
+
+            // New Features Persistence
+            localStorage.setItem(`report_${deckName}`, report);
+            localStorage.setItem(`reportStatus_${deckName}`, reportStatus);
+            localStorage.setItem(`slides_${deckName}`, JSON.stringify(slides));
+            localStorage.setItem(`slidesStatus_${deckName}`, slidesStatus);
+            localStorage.setItem(`table_${deckName}`, JSON.stringify(table));
+            localStorage.setItem(`tableStatus_${deckName}`, tableStatus);
+            localStorage.setItem(`infographic_${deckName}`, infographic);
+            localStorage.setItem(`infographicStatus_${deckName}`, infographicStatus);
         }
         if (generatedContent) {
             localStorage.setItem('last_generated_content', generatedContent);
         }
-    }, [messages, cards, flowcharts, cardsStatus, flowchartStatus, hasInitialChatRun, deckName, generatedContent, quiz, quizStatus, reviewCards]);
+    }, [messages, cards, flowcharts, cardsStatus, flowchartStatus, hasInitialChatRun, deckName, generatedContent, quiz, quizStatus, reviewCards, report, reportStatus, slides, slidesStatus, table, tableStatus, infographic, infographicStatus]);
 
     const handleSendMessage = useCallback(async (text) => {
         if (!text.trim()) return;
@@ -152,7 +182,7 @@ export function DeckProvider({ children }) {
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
-                    setFlowcharts([data.flowchart]); // Keep consistent with existing array logic
+                    setFlowcharts([data.flowchart]);
                     setFlowchartStatus('completed');
                 } else {
                     setFlowchartStatus('idle');
@@ -175,7 +205,6 @@ export function DeckProvider({ children }) {
                     setQuiz(data.quiz);
                     setQuizStatus('completed');
                 } else {
-                    console.warn("Quiz generation returned empty or failed");
                     setQuizStatus('idle');
                 }
             } catch (err) {
@@ -191,13 +220,96 @@ export function DeckProvider({ children }) {
                 });
                 const data = await res.json();
                 if (data.status === 'success' && data.review_cards) {
-                    setReviewCards(prev => [...data.review_cards]); // For now replace, or append? The user said "teaching the things we did answer wrong"
+                    setReviewCards(prev => [...data.review_cards]);
                 }
             } catch (err) {
                 console.error("Review card gen failed:", err);
             }
         }
-    }, [generatedContent, deckName, cardsStatus, flowchartStatus, quizStatus]);
+
+        // --- NEW FEATURES ---
+        else if (type === 'report') {
+            if (!force && (reportStatus === 'generating' || (reportStatus === 'completed' && report))) return;
+            setReportStatus('generating');
+            try {
+                const res = await fetch(`${API_BASE}/generate/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setReport(data.report);
+                    setReportStatus('completed');
+                } else {
+                    setReportStatus('idle');
+                }
+            } catch (err) {
+                console.error("Report gen failed:", err);
+                setReportStatus('idle');
+            }
+        } else if (type === 'slides') {
+            if (!force && (slidesStatus === 'generating' || (slidesStatus === 'completed' && slides.length > 0))) return;
+            setSlidesStatus('generating');
+            try {
+                const res = await fetch(`${API_BASE}/generate/slides`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setSlides(data.slides);
+                    setSlidesStatus('completed');
+                } else {
+                    setSlidesStatus('idle');
+                }
+            } catch (err) {
+                console.error("Slides gen failed:", err);
+                setSlidesStatus('idle');
+            }
+        } else if (type === 'table') {
+            if (!force && (tableStatus === 'generating' || (tableStatus === 'completed' && table.length > 0))) return;
+            setTableStatus('generating');
+            try {
+                const res = await fetch(`${API_BASE}/generate/table`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setTable(data.table);
+                    setTableStatus('completed');
+                } else {
+                    setTableStatus('idle');
+                }
+            } catch (err) {
+                console.error("Table gen failed:", err);
+                setTableStatus('idle');
+            }
+        } else if (type === 'infographic') {
+            if (!force && (infographicStatus === 'generating' || (infographicStatus === 'completed' && infographic))) return;
+            setInfographicStatus('generating');
+            try {
+                const res = await fetch(`${API_BASE}/generate/infographic`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setInfographic(data.infographic);
+                    setInfographicStatus('completed');
+                } else {
+                    setInfographicStatus('idle');
+                }
+            } catch (err) {
+                console.error("Infographic gen failed:", err);
+                setInfographicStatus('idle');
+            }
+        }
+    }, [generatedContent, deckName, cardsStatus, flowchartStatus, quizStatus, reportStatus, slidesStatus, tableStatus, infographicStatus]);
 
     const handleFilesAdded = (e) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -235,6 +347,19 @@ export function DeckProvider({ children }) {
         setIsChatLoading(false);
         setIsThinking(false);
         setHasInitialChatRun(false);
+        setQuiz([]);
+        setReviewCards([]);
+        setQuizStatus('idle');
+
+        // Clear New Features
+        setReport("");
+        setReportStatus('idle');
+        setSlides([]);
+        setSlidesStatus('idle');
+        setTable([]);
+        setTableStatus('idle');
+        setInfographic("");
+        setInfographicStatus('idle');
     }
 
     const resetQuiz = () => {
@@ -268,6 +393,17 @@ export function DeckProvider({ children }) {
             quiz, setQuiz,
             quizStatus, setQuizStatus,
             reviewCards, setReviewCards,
+
+            // New Features Logic
+            report, setReport,
+            reportStatus, setReportStatus,
+            slides, setSlides,
+            slidesStatus, setSlidesStatus,
+            table, setTable,
+            tableStatus, setTableStatus,
+            infographic, setInfographic,
+            infographicStatus, setInfographicStatus,
+
             handleSendMessage,
             triggerGeneration,
             handleFilesAdded,

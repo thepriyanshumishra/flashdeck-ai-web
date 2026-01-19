@@ -2,14 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import {
     ChevronRight, ChevronDown, Network, ZoomIn, ZoomOut,
     Maximize2, Clock, RefreshCw, Layers, Layout,
-    Maximize, Minimize, Minus, Plus, MousePointer2, AlertCircle
+    Maximize, Minimize, Minus, Plus, MousePointer2, AlertCircle,
+    ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MermaidEditor from './MermaidEditor';
+import ExportMenu from './ExportMenu';
+import html2canvas from 'html2canvas';
 
-export default function ExpandableMindMap({ data }) {
+export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
     const [viewMode, setViewMode] = useState('tree'); // 'tree' or 'graph'
     const [nodes, setNodes] = useState([]);
+    const [reconstructedMermaid, setReconstructedMermaid] = useState('');
     const [expandedIds, setExpandedIds] = useState(new Set());
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -76,8 +80,45 @@ export default function ExpandableMindMap({ data }) {
             return roots;
         };
 
+        const generateMermaidFromNodes = (rootNodes) => {
+            if (!rootNodes || rootNodes.length === 0) return '';
+
+            let mermaidStr = 'graph TD\n';
+            const visited = new Set();
+
+            const traverse = (node) => {
+                if (visited.has(node.id)) return;
+                visited.add(node.id);
+
+                // Sanitize label: escape quotes
+                const safeLabel = (node.label || node.id).replace(/"/g, "'");
+
+                // Define node style based on depth/type (optional, keep simple for now)
+                // Just definition: A["Label"]
+                mermaidStr += `    ${node.id}["${safeLabel}"]\n`;
+
+                if (node.children && node.children.length > 0) {
+                    node.children.forEach(child => {
+                        mermaidStr += `    ${node.id} --> ${child.id}\n`;
+                        traverse(child);
+                    });
+                }
+            };
+
+            rootNodes.forEach(root => traverse(root));
+
+            // Add basic styling
+            mermaidStr += '    classDef default fill:#111,stroke:#6366f1,stroke-width:1px,color:#fff;\n';
+
+            return mermaidStr;
+        };
+
         const parsedNodes = parseMermaid(data);
         setNodes(parsedNodes);
+
+        // RECONSTRUCT CLEAN MERMAID FROM THE PARSED TREE
+        const cleanMermaid = generateMermaidFromNodes(parsedNodes);
+        setReconstructedMermaid(cleanMermaid);
 
         if (parsedNodes.length > 0) {
             const initialExpanded = new Set();
@@ -116,6 +157,41 @@ export default function ExpandableMindMap({ data }) {
         if (next.has(id)) next.delete(id);
         else next.add(id);
         setExpandedIds(next);
+    };
+
+    const handleExport = (format) => {
+        if (!containerRef.current) return;
+
+        // If in tree mode, export the whole tree container
+        // If in graph mode, we might want to target the SVG directly or the container
+        const target = viewMode === 'graph'
+            ? containerRef.current.querySelector('svg') || containerRef.current
+            : containerRef.current;
+
+        if (format === 'png') {
+            html2canvas(target).then(canvas => {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = `mindmap-${Date.now()}.png`;
+                a.click();
+            });
+        } else if (format === 'svg') {
+            // Only works well if we have an actual SVG element
+            const svgElement = containerRef.current.querySelector('svg');
+            if (svgElement && viewMode === 'graph') {
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mindmap-${Date.now()}.svg`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } else {
+                // Fallback to png for tree view or if no svg found
+                handleExport('png');
+            }
+        }
     };
 
     const renderNode = (node, depth = 0) => {
@@ -192,6 +268,15 @@ export default function ExpandableMindMap({ data }) {
             {/* Header / Toolbar */}
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-[#080808] z-30">
                 <div className="flex items-center gap-4">
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="mr-2 p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors"
+                            title="Back to Chat"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                    )}
                     <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10">
                         <Network size={20} />
                     </div>
@@ -201,27 +286,44 @@ export default function ExpandableMindMap({ data }) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-[#111] p-1.5 rounded-2xl border border-white/5">
-                    <button
-                        onClick={() => setViewMode('tree')}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${viewMode === 'tree' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                        <Layout size={14} /> Explorable
-                    </button>
-                    <button
-                        onClick={() => setViewMode('graph')}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${viewMode === 'graph' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                        <Layers size={14} /> Full Graph
-                    </button>
-                    {viewMode === 'graph' && (
-                        <>
-                            <div className="w-[1px] h-4 bg-white/10 mx-1" />
-                            <button onClick={handleZoomOut} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"><Minus size={16} /></button>
-                            <button onClick={handleZoomIn} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"><Plus size={16} /></button>
-                            <button onClick={handleReset} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all" title="Reset"><RefreshCw size={14} /></button>
-                        </>
-                    )}
+                <div className="flex items-center gap-2">
+                    {/* View Controls */}
+                    <div className="flex items-center gap-2 bg-[#111] p-1.5 rounded-2xl border border-white/5 mr-2">
+                        <button
+                            onClick={() => setViewMode('tree')}
+                            className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${viewMode === 'tree' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                            <Layout size={14} /> Explorable
+                        </button>
+                        <button
+                            onClick={() => setViewMode('graph')}
+                            className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${viewMode === 'graph' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                            <Layers size={14} /> Full Graph
+                        </button>
+                    </div>
+
+                    {/* Action Controls */}
+                    <div className="flex items-center gap-1 bg-[#111] p-1.5 rounded-2xl border border-white/5">
+                        <ExportMenu onExport={handleExport} type="mindmap" />
+                        {onRegenerate && (
+                            <button
+                                onClick={onRegenerate}
+                                className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"
+                                title="Regenerate"
+                            >
+                                <RefreshCw size={16} />
+                            </button>
+                        )}
+                        {viewMode === 'graph' && (
+                            <>
+                                <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                                <button onClick={handleZoomOut} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"><Minus size={16} /></button>
+                                <button onClick={handleZoomIn} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"><Plus size={16} /></button>
+                                <button onClick={handleReset} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all" title="Reset"><RefreshCw size={14} /></button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -240,7 +342,7 @@ export default function ExpandableMindMap({ data }) {
                             style={{ scale, x: position.x, y: position.y }}
                             className="w-full h-full"
                         >
-                            <MermaidEditor code={data} readOnly={true} />
+                            <MermaidEditor code={reconstructedMermaid} readOnly={true} />
                         </motion.div>
                     </div>
                 ) : (

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from google import genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
+from groq import Groq
 import warnings
 
 # Load env
@@ -73,6 +74,14 @@ if GROQ_API_KEY:
         max_retries=2
     )
 
+# 2.6 Direct Groq Client (For high-speed, low-overhead generation)
+direct_groq_client = None
+if GROQ_API_KEY:
+    try:
+        direct_groq_client = Groq(api_key=GROQ_API_KEY)
+    except Exception as e:
+        print(f"Failed to init direct Groq client: {e}")
+
 # 3. Create Intelligent LLM Chain with explicit error handling for fallbacks
 fallbacks = []
 if groq_llm: fallbacks.append(groq_llm)
@@ -118,6 +127,12 @@ class DeckState(TypedDict):
     partial_cards: Annotated[List[Dict], operator.add] 
     final_cards: List[Dict]
     flowchart: str
+    quiz: List[Dict]
+    review_cards: List[Dict]
+    report: str
+    slides: List[Dict]
+    table: List[Dict]
+    infographic: str
 
 # --- NODES ---
 
@@ -130,18 +145,210 @@ def chunk_document(state: DeckState):
     print(f"Created {len(chunks)} chunks.")
     return {"chunks": chunks}
 
+def generate_report_node(state: DeckState):
+    print("--- NODE: REPORT GEN ---")
+    text = state['original_text'][:50000] # Increased context for reports
+    
+    system_instruction = """You are an expert researcher. Create a comprehensive Deep Research Report based on the provided text.
+    Format the output in beautiful, professional Markdown.
+    Structure:
+    # Title
+    ## Executive Summary
+    ## Key Findings (bullet points)
+    ## Detailed Analysis (sections)
+    ## Conclusion
+    """
+    
+    try:
+        content = ""
+        if google_client and model_is_google_native:
+            try:
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': system_instruction},
+                    contents=f"TEXT: {text}"
+                )
+                content = res.text
+            except Exception as e:
+                print(f"Native Report Gen Error: {e}")
+
+        if not content and llm:
+            prompt = ChatPromptTemplate.from_messages([("system", system_instruction), ("user", "TEXT: {text}")])
+            chain = prompt | llm
+            res = chain.invoke({"text": text})
+            content = res.content
+            
+        print(f"Report generated ({len(content)} chars)")
+        return {"report": content}
+    except Exception as e:
+        print(f"Report Gen Error: {e}")
+        return {"report": "# Error generating report\n" + str(e)}
+
+def generate_slides_node(state: DeckState):
+    print("--- NODE: SLIDES GEN ---")
+    text = state['original_text'][:30000]
+    
+    system_instruction = """You are a presentation expert. Create a slide deck based on the text. 
+    Respond ONLY with JSON matching this structure:
+    {{
+      "slides": [
+        {{ "title": "Slide Title", "content": "Bullet points or short text", "type": "bullet" }},
+        {{ "title": "Conclusion", "content": "Summary text", "type": "paragraph" }}
+      ]
+    }}
+    Create 5-8 slides.
+    """
+    
+    try:
+        content = ""
+        if google_client and model_is_google_native:
+            try:
+                # Unescape for Google SDK if needed, though usually it's fine. 
+                # Let's clean it just in case:
+                clean_instruction = system_instruction.replace("{{", "{").replace("}}", "}")
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': clean_instruction, 'response_mime_type': 'application/json'},
+                    contents=f"TEXT: {text}"
+                )
+                content = res.text
+            except Exception as e:
+                print(f"Native Slides Gen Error: {e}")
+
+        if not content and llm:
+            prompt = ChatPromptTemplate.from_messages([("system", system_instruction), ("user", "TEXT: {text}")])
+            chain = prompt | llm | JsonOutputParser()
+            res = chain.invoke({"text": text})
+            return {"slides": res.get("slides", [])}
+            
+        if content:
+            data = json.loads(content.replace("```json", "").replace("```", "").strip())
+            return {"slides": data.get("slides", [])}
+            
+    except Exception as e:
+        print(f"Slides Gen Error: {e}")
+        return {"slides": []}
+    return {"slides": []}
+
+def generate_table_node(state: DeckState):
+    print("--- NODE: TABLE GEN ---")
+    text = state['original_text'][:30000]
+    
+    system_instruction = """You are a data analyst. Extract key structured data from the text into a JSON table.
+    Identify the most important entities (rows) and attributes (columns).
+    Respond ONLY with JSON matching:
+    {{
+      "columns": ["Name", "Date", "Value", "Notes"],
+      "rows": [
+        {{ "Name": "Item A", "Date": "2023-01", "Value": "100", "Notes": "..." }},
+        {{ "Name": "Item B", "Date": "2023-02", "Value": "200", "Notes": "..." }}
+      ]
+    }}
+    """
+    
+    try:
+        content = ""
+        if google_client and model_is_google_native:
+            try:
+                clean_instruction = system_instruction.replace("{{", "{").replace("}}", "}")
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': clean_instruction, 'response_mime_type': 'application/json'},
+                    contents=f"TEXT: {text}"
+                )
+                content = res.text
+            except Exception as e:
+                print(f"Native Table Gen Error: {e}")
+
+        if not content and llm:
+            prompt = ChatPromptTemplate.from_messages([("system", system_instruction), ("user", "TEXT: {text}")])
+            chain = prompt | llm | JsonOutputParser()
+            res = chain.invoke({"text": text})
+            return {"table": [res]} if isinstance(res, dict) else {"table": res} # Handle potential structure mismatch
+            
+        if content:
+            data = json.loads(content.replace("```json", "").replace("```", "").strip())
+            # Normalize to list of dicts for simplicity if needed, but let's store the whole object
+            return {"table": [data]} 
+            
+    except Exception as e:
+        print(f"Table Gen Error: {e}")
+        return {"table": []}
+    return {"table": []}
+
+def generate_infographic_node(state: DeckState):
+    print("--- NODE: INFOGRAPHIC GEN ---")
+    text = state['original_text'][:20000]
+    
+    # We ask for a mermaid chart that isn't a flowchart (since we have that). Maybe a Pie or Gantt or Class Diagram.
+    system_instruction = """You are a visualization expert. Create a Mermaid.js diagram to visualize the data in the text.
+    Recommended types: 'graph TD' (concept map), 'mindmap' (hierarchical), 'pie' (distribution), 'gantt' (timeline), or 'classDiagram' (structure).
+    
+    CRITICAL SYNTAX RULES:
+    1. Respond ONLY with the Mermaid syntax code. No markdown code blocks.
+    2. ALWAYS enclose node labels in double quotes. Example: id["Label Text"]
+    3. Do NOT use standalone 'note' lines in stateDiagrams.
+    4. Ensure all node IDs are simple alphanumeric characters (no spaces, no special chars).
+    5. Avoid 'stateDiagram' for complex text; use 'graph TD' instead to prevent syntax crashes.
+    """
+    
+    try:
+        content = ""
+        if google_client and model_is_google_native:
+            try:
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': system_instruction},
+                    contents=f"TEXT: {text}"
+                )
+                content = res.text
+            except Exception as e:
+                print(f"Native Info Gen Error: {e}")
+
+        if not content and llm:
+            prompt = ChatPromptTemplate.from_messages([("system", system_instruction), ("user", "TEXT: {text}")])
+            chain = prompt | llm
+            res = chain.invoke({"text": text})
+            content = res.content
+            
+        if content:
+            content = content.replace("```mermaid", "").replace("```", "").strip()
+            return {"infographic": content}
+            
+    except Exception as e:
+        print(f"Infographic Gen Error: {e}")
+        return {"infographic": "graph TD; Error[Generation Failed]"}
+    return {"infographic": ""}
+
+
 def generate_flowchart_node(state: DeckState):
     print("--- NODE: FLOWCHART GEN ---")
     text = state['original_text'][:15000]
     
-    system_instruction = "You are an expert at creating mind maps. Generate a helper Mermaid.js flowchart syntax based on the provided text. \n\nRULES:\n1. Return ONLY the mermaid code, starting with 'graph TD'.\n2. No markdown backticks.\n3. ALWAYS use double quotes for labels: e.g., A[\"My Label\"].\n4. Avoid special characters like (), [], {{}}, or --> inside labels.\n5. Keep the graph logical and hierarchical."
+    system_instruction = "You are an expert at creating mind maps. Generate a helper Mermaid.js flowchart syntax based on the provided text. \n\nRULES:\n1. Return ONLY the mermaid code, starting with 'graph TD'.\n2. No markdown backticks.\n3. ALWAYS use double quotes for labels: e.g., A[\"My Label\"].\n4. Avoid special characters like (), [], {{}}, or --> inside labels.\n5. STRUCTURE: Start with EXACTLY ONE central root node representing the main topic, then branch out hierarchically. Do not create disconnected graphs."
     
     prompt = f"TEXT TO ANALYZE:\n{text}"
 
     content = ""
     try:
-        # Use new Google client if available and appropriate
-        if google_client and model_is_google_native:
+        # 1. Try Direct Groq Client (Fastest, most stable)
+        if direct_groq_client:
+            try:
+                print(f"DEBUG: Using Direct Groq Client for Flowchart. Model: {target_groq_model}")
+                completion = direct_groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_instruction},
+                        {"role": "user", "content": prompt}
+                    ],
+                    model=target_groq_model,
+                    temperature=0.3,
+                )
+                content = completion.choices[0].message.content
+            except Exception as e:
+                print(f"Direct Groq Flowchart Error: {e}")
+
+        # 2. Fallback to Google SDK
+        if not content and google_client and model_is_google_native:
             try:
                 print(f"DEBUG: Using Google New SDK for Flowchart. Model: {target_google_model}")
                 res = google_client.models.generate_content(
@@ -151,10 +358,10 @@ def generate_flowchart_node(state: DeckState):
                 )
                 content = res.text
             except Exception as e:
-                print(f"Native Flowchart Error (Falling back to LLM): {e}")
+                print(f"Native Flowchart Error: {e}")
 
+        # 3. Fallback to LangChain
         if not content and llm:
-            # Fallback to LangChain (OpenRouter or legacy Google)
             print("DEBUG: Using LangChain wrapper for Flowchart")
             full_prompt = ChatPromptTemplate.from_messages([
                 ("system", system_instruction),
@@ -171,7 +378,7 @@ def generate_flowchart_node(state: DeckState):
 
         content = content.replace('```mermaid', '').replace('```', '').strip()
         
-        if not content.startswith('graph') and not content.startswith('flowchart'):
+        if not content.startswith('graph') and not content.startswith('flowchart') and not content.startswith('mindmap'):
             # Try parsing a bit more loosely
             lines = content.split('\n')
             for i, line in enumerate(lines):
@@ -179,7 +386,9 @@ def generate_flowchart_node(state: DeckState):
                     content = '\n'.join(lines[i:])
                     break
             else:
-                raise ValueError("Response lacks Mermaid graph header")
+                # If strictly no graph header, force one
+                content = "graph TD\n" + content
+                # raise ValueError("Response lacks Mermaid graph header")
 
         print(f"Flowchart generated successfully ({len(content)} chars)")
         return {"flowchart": content}
@@ -352,6 +561,12 @@ workflow.add_node("chunker", chunk_document)
 workflow.add_node("generator", generate_cards_node)
 workflow.add_node("flowcharter", generate_flowchart_node)
 workflow.add_node("refiner", refine_deck)
+# New nodes
+workflow.add_node("report_gen", generate_report_node)
+workflow.add_node("slides_gen", generate_slides_node)
+workflow.add_node("table_gen", generate_table_node)
+workflow.add_node("infographic_gen", generate_infographic_node)
+
 
 workflow.set_entry_point("chunker")
 workflow.add_edge("chunker", "generator")
@@ -364,16 +579,30 @@ app_graph = workflow.compile()
 import time
 
 def run_selective_node(text: str, task_type: str, extra_data: Dict = None):
-    state = {"original_text": text, "chunks": [], "partial_cards": [], "final_cards": [], "flowchart": "", "quiz": [], "review_cards": []}
+    # Initialize basic state
+    state = {
+        "original_text": text, 
+        "chunks": [], 
+        "partial_cards": [], 
+        "final_cards": [], 
+        "flowchart": "", 
+        "quiz": [], 
+        "review_cards": [],
+        "report": "",
+        "slides": [],
+        "table": [],
+        "infographic": ""
+    }
     if extra_data:
         state.update(extra_data)
         
     for attempt in range(2):
         try:
-            if task_type in ["cards", "flowchart", "quiz"]:
-                state.update(chunk_document(state))
-                
+            # Common Chunking for these tasks if needed, though most new ones prefer full text or large prefix
+            # report, slides, table, infographic usually take "original_text" directly in the node function
+            
             if task_type == "cards":
+                state.update(chunk_document(state))
                 state.update(generate_cards_node(state))
                 state.update(refine_deck(state))
             elif task_type == "flowchart":
@@ -383,6 +612,16 @@ def run_selective_node(text: str, task_type: str, extra_data: Dict = None):
             elif task_type == "review":
                 state.update(generate_review_node(state))
             
+            # NEW TASKS
+            elif task_type == "report":
+                state.update(generate_report_node(state))
+            elif task_type == "slides":
+                state.update(generate_slides_node(state))
+            elif task_type == "table":
+                state.update(generate_table_node(state))
+            elif task_type == "infographic":
+                state.update(generate_infographic_node(state))
+                
             return state
         except Exception as e:
             if "429" in str(e) and attempt == 0:
