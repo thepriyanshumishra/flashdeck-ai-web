@@ -104,3 +104,19 @@ npm run dev
 ```
 
 Visit `http://localhost:5173` and start your high-speed study session! 🎓
+
+---
+
+## 🧑‍💻 Author
+
+Created by **[Priyanshu Mishra](https://github.com/thepriyanshumishra)**.
+
+## 🤝 Contributors
+
+<a href="https://github.com/thepriyanshumishra/flashdeck-ai-web/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=thepriyanshumishra/flashdeck-ai-web" />
+</a>
+
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=thepriyanshumishra/flashdeck-ai-web&type=Date)](https://star-history.com/#thepriyanshumishra/flashdeck-ai-web&Date)
