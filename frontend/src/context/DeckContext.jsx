@@ -4,6 +4,29 @@ const DeckContext = createContext();
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
+const safeLocalStorage = {
+    setItem: (key, value) => {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                console.warn('LocalStorage quota exceeded. Clearing old data...');
+                // Simple strategy: Clear everything if we're full. 
+                // In a real app we'd be more surgical.
+                localStorage.clear();
+                try {
+                    localStorage.setItem(key, value);
+                } catch (innerE) {
+                    console.error('Failed to set item even after clear:', innerE);
+                }
+            }
+        }
+    },
+    getItem: (key) => localStorage.getItem(key),
+    removeItem: (key) => localStorage.removeItem(key),
+    clear: () => localStorage.clear()
+};
+
 export function DeckProvider({ children }) {
     const initialDeckName = localStorage.getItem('last_deck_name') || "";
     const initialGeneratedContent = localStorage.getItem('last_generated_content') || "";
@@ -22,7 +45,7 @@ export function DeckProvider({ children }) {
         const saved = localStorage.getItem(`flowcharts_${initialDeckName}`);
         return saved ? JSON.parse(saved) : [];
     });
-    const [deckId, setDeckId] = useState(null);
+    const [deckId, setDeckId] = useState(() => localStorage.getItem('last_deck_id') || null);
     const [selectedCard, setSelectedCard] = useState(null);
 
     // Status tracking for lazy generation
@@ -65,38 +88,50 @@ export function DeckProvider({ children }) {
     });
     const [tableStatus, setTableStatus] = useState(() => localStorage.getItem(`tableStatus_${initialDeckName}`) || 'idle');
 
-    const [infographic, setInfographic] = useState(() => localStorage.getItem(`infographic_${initialDeckName}`) || "");
-    const [infographicStatus, setInfographicStatus] = useState(() => localStorage.getItem(`infographicStatus_${initialDeckName}`) || 'idle');
+    // Guide and Saved Notes
+    const [guide, setGuide] = useState(() => {
+        const saved = localStorage.getItem(`guide_${initialDeckName}`);
+        return saved ? JSON.parse(saved) : null;
+    });
+    const [guideStatus, setGuideStatus] = useState(() => localStorage.getItem(`guideStatus_${initialDeckName}`) || 'idle');
+    const [savedNotes, setSavedNotes] = useState(() => {
+        const saved = localStorage.getItem(`savedNotes_${initialDeckName}`);
+        return saved ? JSON.parse(saved) : [];
+    });
 
 
     // Persist to localStorage
     useEffect(() => {
         if (deckName) {
-            localStorage.setItem('last_deck_name', deckName);
-            localStorage.setItem(`messages_${deckName}`, JSON.stringify(messages));
-            localStorage.setItem(`cards_${deckName}`, JSON.stringify(cards));
-            localStorage.setItem(`flowcharts_${deckName}`, JSON.stringify(flowcharts));
-            localStorage.setItem(`cardsStatus_${deckName}`, cardsStatus);
-            localStorage.setItem(`flowchartStatus_${deckName}`, flowchartStatus);
-            localStorage.setItem(`quizStatus_${deckName}`, quizStatus);
-            localStorage.setItem(`hasInitialChatRun_${deckName}`, hasInitialChatRun ? 'true' : 'false');
-            localStorage.setItem(`quiz_${deckName}`, JSON.stringify(quiz));
-            localStorage.setItem(`reviewCards_${deckName}`, JSON.stringify(reviewCards));
+            safeLocalStorage.setItem('last_deck_name', deckName);
+            safeLocalStorage.setItem(`messages_${deckName}`, JSON.stringify(messages));
+            safeLocalStorage.setItem(`cards_${deckName}`, JSON.stringify(cards));
+            safeLocalStorage.setItem(`flowcharts_${deckName}`, JSON.stringify(flowcharts));
+            safeLocalStorage.setItem(`cardsStatus_${deckName}`, cardsStatus);
+            safeLocalStorage.setItem(`flowchartStatus_${deckName}`, flowchartStatus);
+            safeLocalStorage.setItem(`quizStatus_${deckName}`, quizStatus);
+            safeLocalStorage.setItem(`hasInitialChatRun_${deckName}`, hasInitialChatRun ? 'true' : 'false');
+            safeLocalStorage.setItem(`quiz_${deckName}`, JSON.stringify(quiz));
+            safeLocalStorage.setItem(`reviewCards_${deckName}`, JSON.stringify(reviewCards));
 
             // New Features Persistence
-            localStorage.setItem(`report_${deckName}`, report);
-            localStorage.setItem(`reportStatus_${deckName}`, reportStatus);
-            localStorage.setItem(`slides_${deckName}`, JSON.stringify(slides));
-            localStorage.setItem(`slidesStatus_${deckName}`, slidesStatus);
-            localStorage.setItem(`table_${deckName}`, JSON.stringify(table));
-            localStorage.setItem(`tableStatus_${deckName}`, tableStatus);
-            localStorage.setItem(`infographic_${deckName}`, infographic);
-            localStorage.setItem(`infographicStatus_${deckName}`, infographicStatus);
+            safeLocalStorage.setItem(`report_${deckName}`, report);
+            safeLocalStorage.setItem(`reportStatus_${deckName}`, reportStatus);
+            safeLocalStorage.setItem(`slides_${deckName}`, JSON.stringify(slides));
+            safeLocalStorage.setItem(`slidesStatus_${deckName}`, slidesStatus);
+            safeLocalStorage.setItem(`table_${deckName}`, JSON.stringify(table));
+            safeLocalStorage.setItem(`tableStatus_${deckName}`, tableStatus);
+            if (deckId) safeLocalStorage.setItem('last_deck_id', deckId);
+
+            // Guide and Notes Persistence
+            safeLocalStorage.setItem(`guide_${deckName}`, JSON.stringify(guide));
+            safeLocalStorage.setItem(`guideStatus_${deckName}`, guideStatus);
+            safeLocalStorage.setItem(`savedNotes_${deckName}`, JSON.stringify(savedNotes));
         }
         if (generatedContent) {
-            localStorage.setItem('last_generated_content', generatedContent);
+            safeLocalStorage.setItem('last_generated_content', generatedContent);
         }
-    }, [messages, cards, flowcharts, cardsStatus, flowchartStatus, hasInitialChatRun, deckName, generatedContent, quiz, quizStatus, reviewCards, report, reportStatus, slides, slidesStatus, table, tableStatus, infographic, infographicStatus]);
+    }, [messages, cards, flowcharts, cardsStatus, flowchartStatus, hasInitialChatRun, deckName, deckId, generatedContent, quiz, quizStatus, reviewCards, report, reportStatus, slides, slidesStatus, table, tableStatus, guide, guideStatus, savedNotes]);
 
     const handleSendMessage = useCallback(async (text) => {
         if (!text.trim()) return;
@@ -112,8 +147,7 @@ export function DeckProvider({ children }) {
                 body: JSON.stringify({
                     history: messages.map(m => ({ role: m.role, content: m.content })),
                     message: text,
-                    context: generatedContent,
-                    deck_id: deckName
+                    deck_id: deckId
                 })
             });
             if (!response.ok) throw new Error("Chat failed");
@@ -127,13 +161,13 @@ export function DeckProvider({ children }) {
                 const chunk = decoder.decode(value, { stream: true });
                 aiMsgContent += chunk;
                 setIsThinking(false);
-                setIsChatLoading(false);
                 setMessages(prev => {
                     const newMessages = [...prev];
                     newMessages[newMessages.length - 1].content = aiMsgContent;
                     return newMessages;
                 });
             }
+            setIsChatLoading(false);
         } catch (error) {
             console.error(error);
             setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error. Please try again." }]);
@@ -141,11 +175,11 @@ export function DeckProvider({ children }) {
             setIsChatLoading(false);
             setIsThinking(false);
         }
-    }, [messages, generatedContent, deckName]);
+    }, [messages, generatedContent, deckName, deckId]);
 
     const triggerGeneration = useCallback(async (type, extraData = null, force = false) => {
-        if (!generatedContent || !deckName) {
-            console.warn(`Cannot trigger ${type}: missing content or deckName`);
+        if (!deckId && !generatedContent) {
+            console.warn(`Cannot trigger ${type}: missing deckId`);
             return;
         }
 
@@ -158,7 +192,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/cards`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -178,7 +212,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/flowchart`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -198,7 +232,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/quiz`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
                 const data = await res.json();
                 if (data.status === 'success' && data.quiz && data.quiz.length > 0) {
@@ -216,7 +250,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/analyze/quiz`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, missed_questions: extraData })
+                    body: JSON.stringify({ deck_id: deckId, missed_questions: extraData })
                 });
                 const data = await res.json();
                 if (data.status === 'success' && data.review_cards) {
@@ -235,7 +269,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/report`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -255,7 +289,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/slides`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -275,7 +309,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/table`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -288,28 +322,39 @@ export function DeckProvider({ children }) {
                 console.error("Table gen failed:", err);
                 setTableStatus('idle');
             }
-        } else if (type === 'infographic') {
-            if (!force && (infographicStatus === 'generating' || (infographicStatus === 'completed' && infographic))) return;
-            setInfographicStatus('generating');
+        } else if (type === 'guide') {
+            if (!force && (guideStatus === 'generating' || (guideStatus === 'completed' && guide))) return;
+            setGuideStatus('generating');
             try {
-                const res = await fetch(`${API_BASE}/generate/infographic`, {
+                const res = await fetch(`${API_BASE}/generate/guide`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: generatedContent, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
+                if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
                 const data = await res.json();
                 if (data.status === 'success') {
-                    setInfographic(data.infographic);
-                    setInfographicStatus('completed');
+                    setGuide(data.guide);
+                    setGuideStatus('completed');
+                    setHasInitialChatRun(true);
                 } else {
-                    setInfographicStatus('idle');
+                    setGuideStatus('idle');
                 }
             } catch (err) {
-                console.error("Infographic gen failed:", err);
-                setInfographicStatus('idle');
+                console.error("Guide gen failed:", err);
+                setGuideStatus('idle');
             }
         }
-    }, [generatedContent, deckName, cardsStatus, flowchartStatus, quizStatus, reportStatus, slidesStatus, tableStatus, infographicStatus]);
+    }, [deckId, generatedContent, deckName, cardsStatus, flowchartStatus, quizStatus, reportStatus, slidesStatus, tableStatus, guideStatus, guide]);
+
+    const saveNote = (content) => {
+        const newNote = {
+            id: Date.now(),
+            content,
+            date: new Date().toISOString()
+        };
+        setSavedNotes(prev => [newNote, ...prev]);
+    };
 
     const handleFilesAdded = (e) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -334,7 +379,7 @@ export function DeckProvider({ children }) {
     }
 
     const handleClearAll = () => {
-        localStorage.clear();
+        safeLocalStorage.clear();
         setFiles([]);
         setUploadProgress(0);
         setCards([]);
@@ -358,8 +403,6 @@ export function DeckProvider({ children }) {
         setSlidesStatus('idle');
         setTable([]);
         setTableStatus('idle');
-        setInfographic("");
-        setInfographicStatus('idle');
     }
 
     const resetQuiz = () => {
@@ -367,9 +410,9 @@ export function DeckProvider({ children }) {
         setQuizStatus('idle');
         setReviewCards([]);
         if (deckName) {
-            localStorage.removeItem(`quiz_${deckName}`);
-            localStorage.removeItem(`quizStatus_${deckName}`);
-            localStorage.removeItem(`reviewCards_${deckName}`);
+            safeLocalStorage.removeItem(`quiz_${deckName}`);
+            safeLocalStorage.removeItem(`quizStatus_${deckName}`);
+            safeLocalStorage.removeItem(`reviewCards_${deckName}`);
         }
     }
 
@@ -401,8 +444,10 @@ export function DeckProvider({ children }) {
             slidesStatus, setSlidesStatus,
             table, setTable,
             tableStatus, setTableStatus,
-            infographic, setInfographic,
-            infographicStatus, setInfographicStatus,
+            guide, setGuide,
+            guideStatus, setGuideStatus,
+            savedNotes, setSavedNotes,
+            saveNote,
 
             handleSendMessage,
             triggerGeneration,

@@ -1,24 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-    ChevronRight, ChevronDown, Network, ZoomIn, ZoomOut,
-    Maximize2, Clock, RefreshCw, Layers, Layout,
-    Maximize, Minimize, Minus, Plus, MousePointer2, AlertCircle,
-    ChevronLeft
+    ChevronRight, ChevronDown, Network,
+    RefreshCw, AlertCircle, ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import MermaidEditor from './MermaidEditor';
 import ExportMenu from './ExportMenu';
 import html2canvas from 'html2canvas';
 
 export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
-    const [viewMode, setViewMode] = useState('tree'); // 'tree' or 'graph'
     const [nodes, setNodes] = useState([]);
     const [reconstructedMermaid, setReconstructedMermaid] = useState('');
     const [expandedIds, setExpandedIds] = useState(new Set());
-    const [scale, setScale] = useState(1);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const containerRef = useRef(null);
 
     // --- ROBUST MERMAID PARSER ---
@@ -83,33 +75,72 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
         const generateMermaidFromNodes = (rootNodes) => {
             if (!rootNodes || rootNodes.length === 0) return '';
 
-            let mermaidStr = 'graph TD\n';
-            const visited = new Set();
+            // 1. Collect all unique nodes to ensure clean definitions
+            // This 2-pass approach strictly follows Mermaid syntax requirements
+            // preventing 'Syntax Conflict' by separating definitions from edges.
+            const allNodes = new Map(); // id -> { safeId, safeLabel }
+            const edges = []; // { from, to }
+            const definedIds = new Set();
+            let idCounter = 0;
 
-            const traverse = (node) => {
-                if (visited.has(node.id)) return;
-                visited.add(node.id);
+            const processNode = (node) => {
+                // Ensure unique processing per ID to avoid cycles/duplicates in definition
+                if (!definedIds.has(node.id)) {
+                    definedIds.add(node.id);
 
-                // Sanitize label: escape quotes
-                const safeLabel = (node.label || node.id).replace(/"/g, "'");
+                    // Sanitize ID: Ensure simple alphanumeric ID for Mermaid
+                    const safeId = `node_${idCounter++}`;
 
-                // Define node style based on depth/type (optional, keep simple for now)
-                // Just definition: A["Label"]
-                mermaidStr += `    ${node.id}["${safeLabel}"]\n`;
+                    // Sanitize Label: Extensive cleaning for stability
+                    let label = node.label || node.id;
+                    if (typeof label !== 'string') label = String(label);
 
-                if (node.children && node.children.length > 0) {
+                    label = label
+                        .replace(/"/g, "'")             // Quotes to single
+                        .replace(/`/g, "'")             // Backticks
+                        .replace(/[\[\]\(\)\{\}]/g, '') // Brackets (remove to be safe)
+                        .replace(/<[^>]*>/g, '')        // HTML tags
+                        .replace(/\n/g, ' ')            // Newlines
+                        .replace(/\\/g, '/')            // Backslashes
+                        .trim();
+
+                    // Truncate quite aggressively to prevent overflow
+                    if (label.length > 50) label = label.substring(0, 47) + '...';
+                    if (!label) label = node.id;
+
+                    allNodes.set(node.id, { safeId, safeLabel: label });
+                }
+
+                if (node.children) {
                     node.children.forEach(child => {
-                        mermaidStr += `    ${node.id} --> ${child.id}\n`;
-                        traverse(child);
+                        edges.push({ from: node.id, to: child.id });
+                        processNode(child);
                     });
                 }
             };
 
-            rootNodes.forEach(root => traverse(root));
+            rootNodes.forEach(processNode);
 
-            // Add basic styling
-            mermaidStr += '    classDef default fill:#111,stroke:#6366f1,stroke-width:1px,color:#fff;\n';
+            // 2. Build Strict Mermaid String
+            let mermaidStr = 'graph TD\n';
 
+            // A. Definitions
+            for (const [originalId, info] of allNodes.entries()) {
+                mermaidStr += `    ${info.safeId}["${info.safeLabel}"]\n`;
+            }
+
+            // B. Connections (using only IDs)
+            mermaidStr += '\n';
+            for (const edge of edges) {
+                const from = allNodes.get(edge.from);
+                const to = allNodes.get(edge.to);
+                if (from && to) {
+                    mermaidStr += `    ${from.safeId} --> ${to.safeId}\n`;
+                }
+            }
+
+            // Use slightly rounded rectangles and dark theme colors
+            mermaidStr += '    classDef default fill:#1a1a1a,stroke:#6366f1,stroke-width:1px,color:#fff,rx:5px,ry:5px;\n';
             return mermaidStr;
         };
 
@@ -287,22 +318,6 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* View Controls */}
-                    <div className="flex items-center gap-2 bg-[#111] p-1.5 rounded-2xl border border-white/5 mr-2">
-                        <button
-                            onClick={() => setViewMode('tree')}
-                            className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${viewMode === 'tree' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            <Layout size={14} /> Explorable
-                        </button>
-                        <button
-                            onClick={() => setViewMode('graph')}
-                            className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${viewMode === 'graph' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            <Layers size={14} /> Full Graph
-                        </button>
-                    </div>
-
                     {/* Action Controls */}
                     <div className="flex items-center gap-1 bg-[#111] p-1.5 rounded-2xl border border-white/5">
                         <ExportMenu onExport={handleExport} type="mindmap" />
@@ -315,48 +330,20 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
                                 <RefreshCw size={16} />
                             </button>
                         )}
-                        {viewMode === 'graph' && (
-                            <>
-                                <div className="w-[1px] h-4 bg-white/10 mx-1" />
-                                <button onClick={handleZoomOut} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"><Minus size={16} /></button>
-                                <button onClick={handleZoomIn} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"><Plus size={16} /></button>
-                                <button onClick={handleReset} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all" title="Reset"><RefreshCw size={14} /></button>
-                            </>
-                        )}
                     </div>
                 </div>
             </div>
 
             {/* Content Area */}
-            <div
-                ref={containerRef}
-                className={`flex-1 relative ${viewMode === 'tree' ? 'overflow-y-auto custom-scrollbar' : 'overflow-hidden cursor-grab active:cursor-grabbing'}`}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-            >
-                {viewMode === 'graph' ? (
-                    <div className="h-full w-full flex items-center justify-center">
-                        <motion.div
-                            style={{ scale, x: position.x, y: position.y }}
-                            className="w-full h-full"
-                        >
-                            <MermaidEditor code={reconstructedMermaid} readOnly={true} />
-                        </motion.div>
+            <div className="p-10 max-w-4xl mx-auto">
+                {nodes.length > 0 ? (
+                    <div className="-ml-8">
+                        {nodes.map(node => renderNode(node))}
                     </div>
                 ) : (
-                    <div className="p-10 max-w-4xl mx-auto">
-                        {nodes.length > 0 ? (
-                            <div className="-ml-8">
-                                {nodes.map(node => renderNode(node))}
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center min-h-[400px] text-center opacity-30">
-                                <AlertCircle className="mb-4" size={32} />
-                                <p className="text-sm font-medium">Logical structure empty or invalid.</p>
-                            </div>
-                        )}
+                    <div className="flex flex-col items-center justify-center min-h-[400px] text-center opacity-30">
+                        <AlertCircle className="mb-4" size={32} />
+                        <p className="text-sm font-medium">Logical structure empty or invalid.</p>
                     </div>
                 )}
             </div>
@@ -373,15 +360,7 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
                         <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Sub-concept</span>
                     </div>
                 </div>
-                {viewMode === 'graph' && (
-                    <div className="text-[10px] text-gray-700 font-mono flex items-center gap-2">
-                        <MousePointer2 size={10} />
-                        <span>Drag to pan • Scale: {Math.round(scale * 100)}%</span>
-                    </div>
-                )}
-                {viewMode === 'tree' && (
-                    <span className="text-[10px] text-gray-700 font-mono">Expand nodes to dive deep</span>
-                )}
+                <span className="text-[10px] text-gray-700 font-mono">Expand nodes to dive deep</span>
             </div>
         </div>
     );

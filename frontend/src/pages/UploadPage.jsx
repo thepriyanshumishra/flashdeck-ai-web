@@ -28,8 +28,8 @@ export default function UploadPage() {
         setReport, setReportStatus,
         setSlides, setSlidesStatus,
         setTable, setTableStatus,
-        setInfographic, setInfographicStatus,
-        setQuiz, setQuizStatus
+        setQuiz, setQuizStatus,
+        setGuide, setGuideStatus
     } = useDeck();
 
     const onGenerateClick = async () => {
@@ -69,8 +69,8 @@ export default function UploadPage() {
             setReport(""); setReportStatus('idle');
             setSlides([]); setSlidesStatus('idle');
             setTable([]); setTableStatus('idle');
-            setInfographic(""); setInfographicStatus('idle');
             setQuiz([]); setQuizStatus('idle');
+            setGuide(null); setGuideStatus('idle');
 
             // Navigate to the Notebook Dashboard
             navigate('/notebook');

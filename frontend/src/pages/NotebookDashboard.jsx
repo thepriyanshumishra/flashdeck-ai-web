@@ -1,27 +1,28 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDeck } from '../context/DeckContext';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     FileText, MessageSquare, Mic, PlayCircle, BookOpen, Brain,
     CreditCard, PieChart, Sparkles, Plus, Search, MoreHorizontal,
     MoreVertical, ThumbsUp, ThumbsDown, Copy, Video,
     Network, Presentation, Table, Lock, PanelRightClose, PanelRightOpen,
     PanelLeftClose, PanelLeftOpen, RotateCw, CheckCircle2, Clock, Trash2,
-    ChevronDown, Settings, Share2, BarChart2, Maximize2, MicOff
+    ChevronDown, Settings, Share2, BarChart2, Maximize2, MicOff, Star, Bookmark,
+    Edit3, Loader2, Wand2
 } from 'lucide-react';
 
 import Navbar from '../components/layout/Navbar';
-import MermaidEditor from '../components/MermaidEditor';
 import ExpandableMindMap from '../components/ExpandableMindMap';
 import ReportViewer from '../components/ReportViewer';
 import SlideDeckViewer from '../components/SlideDeckViewer';
 import DataTableView from '../components/DataTableView';
-import InfographicViewer from '../components/InfographicViewer';
+import SavedNotesModal from '../components/SavedNotesModal';
 
 export default function NotebookDashboard() {
     const navigate = useNavigate();
@@ -29,9 +30,10 @@ export default function NotebookDashboard() {
     const [isSourcesCollapsed, setIsSourcesCollapsed] = useState(false);
     const [activeTool, setActiveTool] = useState("Chat");
     const [localInputValue, setLocalInputValue] = useState("");
+    const [isSavedNotesModalOpen, setIsSavedNotesModalOpen] = useState(false);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
-    const initialTriggeredRef = useRef(false);
+    const [thinkingStep, setThinkingStep] = useState(0);
 
     const {
         files, setFiles, handleFilesAdded, handleRemoveFile,
@@ -51,12 +53,44 @@ export default function NotebookDashboard() {
         report, reportStatus,
         slides, slidesStatus,
         table, tableStatus,
-        infographic, infographicStatus
+        guide, guideStatus, savedNotes, saveNote,
+        deckId
     } = useDeck();
+
+    const thinkingStatuses = [
+        { text: "Reviewing the content...", icon: Search },
+        { text: "Crafting a detailed explanation...", icon: Wand2 },
+        { text: "Checking your uploads...", icon: BookOpen },
+        { text: "Analyzing document structure...", icon: Table },
+        { text: "Synthesizing key insights...", icon: Brain },
+        { text: "Polishing the response...", icon: Sparkles }
+    ];
+
+    useEffect(() => {
+        let interval;
+        if (isThinking) {
+            interval = setInterval(() => {
+                setThinkingStep(prev => (prev + 1) % thinkingStatuses.length);
+            }, 2500);
+        } else {
+            setThinkingStep(0);
+        }
+        return () => clearInterval(interval);
+    }, [isThinking]);
 
     const handleCreateNew = () => {
         handleClearAll();
         navigate('/');
+    };
+
+    const handleGenerateAll = () => {
+        // Fire all requests in parallel
+        if (cardsStatus === 'idle') triggerGeneration('cards');
+        if (flowchartStatus === 'idle') triggerGeneration('flowchart');
+        if (quizStatus === 'idle') triggerGeneration('quiz');
+        if (reportStatus === 'idle') triggerGeneration('report');
+        if (slidesStatus === 'idle') triggerGeneration('slides');
+        if (tableStatus === 'idle') triggerGeneration('table');
     };
 
     const handleAddSource = () => {
@@ -82,12 +116,10 @@ export default function NotebookDashboard() {
     }, [messages, isChatLoading]);
 
     useEffect(() => {
-        if (generatedContent && !hasInitialChatRun && !initialTriggeredRef.current && messages.length === 0) {
-            initialTriggeredRef.current = true;
-            setHasInitialChatRun(true);
-            handleSendMessage("Generate a Notebook Guide for these sources. Start with a clear title reflecting the content. Follow with a comprehensive summary of all documents in blockquote style. End with a horizontal line and 'Suggested Questions:' followed by 3 short questions to start the conversation.");
+        if (deckId && !messages.length && guideStatus === 'idle') {
+            triggerGeneration('guide');
         }
-    }, [generatedContent, hasInitialChatRun, messages.length, handleSendMessage, setHasInitialChatRun]);
+    }, [deckId, messages.length, guideStatus, triggerGeneration]);
 
     const studioTools = [
         { name: "Audio Overview", icon: Mic, active: false, badge: null },
@@ -114,12 +146,6 @@ export default function NotebookDashboard() {
             name: "Quiz", icon: PieChart, active: true, badge: null,
             onClick: () => {
                 if (quizStatus !== 'generating') triggerGeneration('quiz');
-            }
-        },
-        {
-            name: "Infographic", icon: PieChart, active: true, badge: null,
-            onClick: () => {
-                if (infographicStatus !== 'generating') triggerGeneration('infographic');
             }
         },
         {
@@ -228,13 +254,13 @@ export default function NotebookDashboard() {
                     ${isSourcesCollapsed ? 'md:w-14' : 'md:w-[320px] md:bg-transparent'}
                     flex-shrink-0 flex-col border-r border-white/5 transition-all duration-300
                 `}>
-                    <div className="p-4 flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-sm font-medium text-gray-400 px-2">Sources</h2>
+                    <div className={`${isSourcesCollapsed ? 'p-2' : 'p-4'} flex flex-col h-full transition-all duration-300`}>
+                        <div className={`flex items-center ${isSourcesCollapsed ? 'justify-center' : 'justify-between'} mb-6`}>
+                            {!isSourcesCollapsed && <h2 className="text-sm font-medium text-gray-400 px-2 animate-in fade-in duration-300">Sources</h2>}
                             {/* Hide collapse toggle on mobile since we use tabs */}
                             <button
                                 onClick={() => setIsSourcesCollapsed(!isSourcesCollapsed)}
-                                className="hidden md:block p-2 text-gray-500 hover:text-white"
+                                className="hidden md:block p-2 text-gray-500 hover:text-white transition-colors"
                             >
                                 {isSourcesCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
                             </button>
@@ -313,7 +339,7 @@ export default function NotebookDashboard() {
                             <div className="h-full">
                                 <ExpandableMindMap
                                     data={flowcharts[0]}
-                                    onRegenerate={() => triggerGeneration('flowchart')}
+                                    onRegenerate={() => triggerGeneration('flowchart', null, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
                             </div>
@@ -321,7 +347,7 @@ export default function NotebookDashboard() {
                             <div className="h-full">
                                 <ReportViewer
                                     markdown={report}
-                                    onRegenerate={() => triggerGeneration('report')}
+                                    onRegenerate={() => triggerGeneration('report', null, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
                             </div>
@@ -329,7 +355,7 @@ export default function NotebookDashboard() {
                             <div className="h-full">
                                 <SlideDeckViewer
                                     data={slides}
-                                    onRegenerate={() => triggerGeneration('slides')}
+                                    onRegenerate={() => triggerGeneration('slides', null, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
                             </div>
@@ -337,79 +363,263 @@ export default function NotebookDashboard() {
                             <div className="h-full">
                                 <DataTableView
                                     data={table}
-                                    onRegenerate={() => triggerGeneration('table')}
+                                    onRegenerate={() => triggerGeneration('table', null, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
-                            </div>
-                        ) : activeTool === "Infographic" && infographicStatus === 'completed' ? (
-                            <div className="h-full">
-                                <InfographicViewer
-                                    code={infographic}
-                                    onRegenerate={() => triggerGeneration('infographic')}
-                                    onClose={() => setActiveTool(null)}
-                                />
-                            </div>
-                        ) : messages.length === 0 && !isChatLoading ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto space-y-6 px-4">
-                                <div className="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center animate-float">
-                                    <Brain className="text-indigo-400" size={40} />
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl md:text-3xl font-semibold text-white mb-3">Your AI Study Buddy</h1>
-                                    <p className="text-gray-500 leading-relaxed text-sm md:text-base">Ask anything about your sources, or use the Studio tools to generate interactive learning materials.</p>
-                                </div>
-                                <div className="flex gap-4 flex-wrap justify-center">
-                                    <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-400">Summarize these docs</div>
-                                    <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-400">Key takeaway points</div>
-                                </div>
                             </div>
                         ) : (
-                            <div className="max-w-3xl mx-auto w-full space-y-6 md:space-y-8 pb-32">
-                                {messages.map((msg, i) => (
-                                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[95%] md:max-w-[90%] rounded-3xl p-4 md:p-5 ${msg.role === 'user'
-                                            ? 'bg-indigo-600/10 text-white border border-indigo-500/20 shadow-[0_4px_20px_rgba(99,102,241,0.05)]'
-                                            : 'bg-transparent text-gray-300 chat-markdown'}`}>
-                                            <ReactMarkdown
-                                                remarkPlugins={[remarkMath, remarkGfm]}
-                                                rehypePlugins={[rehypeKatex]}
-                                                components={{
-                                                    strong: ({ ...props }) => <strong className="font-bold text-white/95" {...props} />,
-                                                    em: ({ ...props }) => <em className="italic text-gray-400" {...props} />,
-                                                    blockquote: ({ ...props }) => <blockquote className="border-l-2 border-indigo-500/50 pl-4 my-4 italic text-gray-400 bg-indigo-500/5 py-1" {...props} />,
-                                                    p: ({ ...props }) => <p className="mb-4 last:mb-0 leading-relaxed text-[14px] md:text-[15px] text-gray-300/90" {...props} />,
-                                                    ul: ({ ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
-                                                    ol: ({ ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
-                                                    li: ({ ...props }) => <li className="text-[14px] md:text-[15px]" {...props} />,
-                                                    h1: ({ ...props }) => <h1 className="text-xl md:text-2xl font-bold mb-4 text-white" {...props} />,
-                                                    h2: ({ ...props }) => <h2 className="text-lg md:text-xl font-bold mb-3 text-white" {...props} />,
-                                                    h3: ({ ...props }) => <h3 className="text-base md:text-lg font-bold mb-3 text-white" {...props} />,
-                                                    table: ({ ...props }) => (
-                                                        <div className="my-6 overflow-x-auto rounded-2xl border border-white/10 bg-[#121212]">
-                                                            <table className="w-full text-left border-collapse text-sm" {...props} />
+                            <div className="max-w-3xl mx-auto w-full space-y-8 pb-32">
+                                {/* Notebook Guide - Always at the top */}
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="space-y-2 text-center">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] text-gray-400">
+                                            <BookOpen size={12} className="text-indigo-400" />
+                                            <span>{files.length || 1} sources analyzed</span>
+                                        </div>
+                                        <h1 className="text-4xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 pb-2">
+                                            {(guide && guide.title) || deckName || "Untitled Notebook"}
+                                        </h1>
+                                    </div>
+
+                                    <div className="bg-[#1a1a1a]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 relative overflow-hidden group">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                                        <div className="relative z-10 space-y-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border transition-all ${guide ? 'bg-indigo-500/20 border-indigo-500/20 text-indigo-400' : 'bg-white/5 border-white/5 text-gray-600 animate-pulse'}`}>
+                                                    {guide ? <Sparkles size={20} /> : <RotateCw size={20} className="animate-spin" />}
+                                                </div>
+                                                <div className="flex-1 space-y-4">
+                                                    <h3 className="text-sm font-medium text-gray-200 uppercase tracking-widest">Notebook Guide</h3>
+                                                    {guide ? (
+                                                        <div className="prose prose-invert prose-p:text-gray-300 prose-p:leading-relaxed max-w-none">
+                                                            {guide.summary}
                                                         </div>
-                                                    ),
-                                                    thead: ({ ...props }) => <thead className="bg-white/5 text-gray-200 font-semibold" {...props} />,
-                                                    th: ({ ...props }) => <th className="p-4 border-b border-white/10" {...props} />,
-                                                    td: ({ ...props }) => <td className="p-4 border-b border-white/5 text-gray-400" {...props} />,
-                                                    tr: ({ ...props }) => <tr className="hover:bg-white/5 transition-colors" {...props} />,
-                                                    code: ({ inline, ...props }) => (
-                                                        inline
-                                                            ? <span className="font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded text-xs" {...props} />
-                                                            : <pre className="font-mono text-gray-300 whitespace-pre-wrap p-4 bg-[#121212] rounded-2xl border border-white/5 my-4 overflow-x-auto" {...props} />
-                                                    )
-                                                }}
-                                            >
-                                                {msg.content}
-                                            </ReactMarkdown>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            <div className="h-4 bg-white/5 rounded w-full animate-pulse"></div>
+                                                            <div className="h-4 bg-white/5 rounded w-5/6 animate-pulse"></div>
+                                                            <div className="h-4 bg-white/5 rounded w-4/6 animate-pulse"></div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {guide && (
+                                                <div className="flex items-center gap-2 pt-4 border-t border-white/5 pl-14 animate-in fade-in duration-500">
+                                                    <button
+                                                        onClick={handleCreateNew}
+                                                        className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-full transition-colors"
+                                                        title="Clear & New"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                    <div className="w-px h-4 bg-white/10 mx-2" />
+                                                    <div className="flex items-center gap-1">
+                                                        <button className="p-2 text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-colors">
+                                                            <ThumbsUp size={16} />
+                                                        </button>
+                                                        <button className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-colors">
+                                                            <ThumbsDown size={16} />
+                                                        </button>
+                                                        <button className="p-2 text-gray-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-full transition-colors" onClick={() => saveNote(guide.summary)}>
+                                                            <Bookmark size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                ))}
+
+                                    {/* Initial Suggested Questions (Only shown if no messages yet) */}
+                                    {!messages.length && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            {guide && guide.questions && guide.questions.length > 0 ? (
+                                                guide.questions.slice(0, 3).map((q, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => handleSendMessage(q)}
+                                                        className="p-4 rounded-xl bg-[#1a1a1a] border border-white/5 hover:border-indigo-500/30 hover:bg-indigo-500/5 text-left transition-all group flex flex-col justify-between h-auto min-h-[100px] animate-in fade-in slide-in-from-bottom-2"
+                                                        style={{ animationDelay: `${i * 100}ms`, animationFillMode: 'both' }}
+                                                    >
+                                                        <span className="text-sm text-gray-300 group-hover:text-white line-clamp-3">{q}</span>
+                                                        <div className="mt-3 flex items-center gap-2 text-[10px] text-gray-500 font-medium group-hover:text-indigo-400">
+                                                            <MessageSquare size={12} />
+                                                            <span>Ask this</span>
+                                                        </div>
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                [1, 2, 3].map((_, i) => (
+                                                    <div key={i} className="p-4 rounded-xl bg-[#1a1a1a]/40 border border-white/5 h-[120px] animate-pulse flex flex-col justify-between">
+                                                        <div className="space-y-2">
+                                                            <div className="h-3 bg-white/5 rounded w-3/4"></div>
+                                                            <div className="h-3 bg-white/5 rounded w-1/2"></div>
+                                                        </div>
+                                                        <div className="h-2 bg-white/5 rounded w-1/4"></div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Chat Messages */}
+                                <AnimatePresence mode="popLayout">
+                                    {messages.map((msg, i) => {
+                                        // Local parsing logic for suggestions in assistant messages
+                                        let cleanContent = msg.content;
+                                        let suggestions = [];
+
+                                        // Capture EVERYTHING from [SUGGESTIONS] to the end of the brackets, non-greedily
+                                        const suggestionMatch = msg.content.match(/\[SUGGESTIONS\]:?\s*(\[[\s\S]*?\])/i);
+
+                                        if (suggestionMatch) {
+                                            try {
+                                                let jsonStr = suggestionMatch[1]
+                                                    .trim()
+                                                    .replace(/,\s*\]$/, ']'); // Fix trailing comma
+
+                                                suggestions = JSON.parse(jsonStr);
+
+                                                // Clean content should remove the entire [SUGGESTIONS] block
+                                                cleanContent = msg.content.replace(/\[SUGGESTIONS\]:?\s*\[[\s\S]*?\]/i, '').trim();
+                                            } catch (e) {
+                                                console.error("Failed to parse suggestions", e, suggestionMatch[1]);
+                                                // Fallback: try to extract strings with regex if JSON parse fails
+                                                const stringMatch = suggestionMatch[1].match(/"([^"]+)"/g);
+                                                if (stringMatch) {
+                                                    suggestions = stringMatch.map(s => s.replace(/"/g, ''));
+                                                    cleanContent = msg.content.replace(/\[SUGGESTIONS\]:?\s*\[[\s\S]*?\]/i, '').trim();
+                                                }
+                                            }
+                                        }
+
+                                        const isLastMessage = i === messages.length - 1;
+
+                                        return (
+                                            <motion.div
+                                                key={`msg-${i}`}
+                                                initial={{ opacity: 0, y: 15 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.4, ease: "easeOut" }}
+                                                className="space-y-4"
+                                            >
+                                                <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                    <div className={`max-w-[95%] md:max-w-[90%] rounded-3xl p-4 md:p-5 ${msg.role === 'user'
+                                                        ? 'bg-indigo-600/10 text-white border border-indigo-500/20 shadow-[0_4px_20px_rgba(99,102,241,0.05)]'
+                                                        : 'bg-transparent text-gray-300 chat-markdown'}`}>
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[remarkMath, remarkGfm]}
+                                                            rehypePlugins={[rehypeKatex]}
+                                                            components={{
+                                                                strong: ({ node, ...props }) => <strong className="font-bold text-white/95" {...props} />,
+                                                                em: ({ node, ...props }) => <em className="italic text-gray-400" {...props} />,
+                                                                blockquote: ({ node, ...props }) => <blockquote className="border-l-2 border-indigo-500/50 pl-4 my-4 italic text-gray-400 bg-indigo-500/5 py-1" {...props} />,
+                                                                // Use div instead of p to avoid "pre inside p" hydration errors if the model outputs code blocks inside paragraphs
+                                                                p: ({ node, ...props }) => <div className="mb-4 last:mb-0 leading-relaxed text-[14px] md:text-[15px] text-gray-300/90" {...props} />,
+                                                                ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
+                                                                ol: ({ node, ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
+                                                                li: ({ node, ...props }) => <li className="text-[14px] md:text-[15px]" {...props} />,
+                                                                h1: ({ node, ...props }) => <h1 className="text-xl md:text-2xl font-bold mb-4 text-white" {...props} />,
+                                                                h2: ({ node, ...props }) => <h2 className="text-lg md:text-xl font-bold mb-3 text-white" {...props} />,
+                                                                h3: ({ node, ...props }) => <h3 className="text-base md:text-lg font-bold mb-3 text-white" {...props} />,
+                                                                table: ({ node, ...props }) => (
+                                                                    <div className="my-6 overflow-x-auto rounded-2xl border border-white/10 bg-[#121212]">
+                                                                        <table className="w-full text-left border-collapse text-sm" {...props} />
+                                                                    </div>
+                                                                ),
+                                                                thead: ({ node, ...props }) => <thead className="bg-white/5 text-gray-200 font-semibold" {...props} />,
+                                                                th: ({ node, ...props }) => <th className="p-4 border-b border-white/10" {...props} />,
+                                                                td: ({ node, ...props }) => <td className="p-4 border-b border-white/5 text-gray-400" {...props} />,
+                                                                tr: ({ node, ...props }) => <tr className="hover:bg-white/5 transition-colors" {...props} />,
+                                                                pre: ({ node, ...props }) => <pre className="font-mono text-gray-300 whitespace-pre-wrap p-4 bg-[#121212] rounded-2xl border border-white/5 my-4 overflow-x-auto custom-scrollbar" {...props} />,
+                                                                code: ({ node, inline, ...props }) => (
+                                                                    inline
+                                                                        ? <span className="font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded text-xs" {...props} />
+                                                                        : <code className="block w-full" {...props} />
+                                                                )
+                                                            }}
+                                                        >
+                                                            {cleanContent}
+                                                        </ReactMarkdown>
+
+                                                        {/* AIMessage Actions */}
+                                                        {msg.role === 'assistant' && (
+                                                            <div className="flex items-center gap-1 mt-3 pt-3 border-t border-white/5">
+                                                                <button
+                                                                    onClick={() => navigator.clipboard.writeText(cleanContent)}
+                                                                    className="p-1.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                                    title="Copy"
+                                                                >
+                                                                    <Copy size={14} />
+                                                                </button>
+                                                                <button className="p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors" title="Helpful">
+                                                                    <ThumbsUp size={14} />
+                                                                </button>
+                                                                <button className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors" title="Not Helpful">
+                                                                    <ThumbsDown size={14} />
+                                                                </button>
+                                                                <div className="w-px h-3 bg-white/10 mx-1" />
+                                                                <button
+                                                                    onClick={() => saveNote(cleanContent)}
+                                                                    className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium text-gray-400 hover:text-emerald-400 bg-white/5 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                                >
+                                                                    <Bookmark size={12} />
+                                                                    <span>Save to Note</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Dynamic Suggestions for Assistant Messages */}
+                                                {msg.role === 'assistant' && isLastMessage && !isChatLoading && suggestions.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500 pl-2">
+                                                        {suggestions.map((q, j) => (
+                                                            <button
+                                                                key={j}
+                                                                onClick={() => handleSendMessage(q)}
+                                                                className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-white hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all flex items-center gap-2"
+                                                            >
+                                                                <MessageSquare size={12} className="text-indigo-400" />
+                                                                {q}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
+
                                 {isThinking && (
-                                    <div className="flex justify-start">
-                                        <div className="flex items-center gap-3 text-indigo-400/80 bg-indigo-500/5 py-2 px-4 rounded-full border border-indigo-500/10">
-                                            <RotateCw size={14} className="animate-spin" />
-                                            <span className="text-xs font-medium tracking-wide italic">AI Tutor is deep thinking...</span>
+                                    <div className="flex justify-start pl-2">
+                                        <div className="flex items-center gap-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex gap-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40 animate-bounce [animation-delay:-0.3s]"></div>
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/60 animate-bounce [animation-delay:-0.15s]"></div>
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce"></div>
+                                                </div>
+                                            </div>
+                                            <AnimatePresence mode="wait">
+                                                <motion.div
+                                                    key={thinkingStep}
+                                                    initial={{ opacity: 0, x: 5 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0, x: -5 }}
+                                                    transition={{ duration: 0.3 }}
+                                                    className="flex items-center gap-2 text-gray-500"
+                                                >
+                                                    {(() => {
+                                                        const Icon = thinkingStatuses[thinkingStep].icon;
+                                                        return <Icon size={14} className="text-indigo-400" />;
+                                                    })()}
+                                                    <span className="text-[13px] font-medium italic">
+                                                        {thinkingStatuses[thinkingStep].text}
+                                                    </span>
+                                                </motion.div>
+                                            </AnimatePresence>
                                         </div>
                                     </div>
                                 )}
@@ -492,13 +702,13 @@ export default function NotebookDashboard() {
                     ${isStudioCollapsed ? 'md:w-14' : 'md:w-[400px] md:bg-transparent'}
                     flex-shrink-0 flex-col border-l border-white/5 transition-all duration-300
                 `}>
-                    <div className="p-4 flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-sm font-medium text-gray-400 px-2">Studio</h2>
+                    <div className={`${isStudioCollapsed ? 'p-2' : 'p-4'} flex flex-col h-full transition-all duration-300`}>
+                        <div className={`flex items-center ${isStudioCollapsed ? 'justify-center' : 'justify-between'} mb-6`}>
+                            {!isStudioCollapsed && <h2 className="text-sm font-medium text-gray-400 px-2 animate-in fade-in duration-300">Studio</h2>}
                             {/* Hide collapse toggle on mobile */}
                             <button
                                 onClick={() => setIsStudioCollapsed(!isStudioCollapsed)}
-                                className="hidden md:block p-2 text-gray-500 hover:text-white"
+                                className="hidden md:block p-2 text-gray-500 hover:text-white transition-colors"
                             >
                                 {isStudioCollapsed ? <PanelRightOpen size={18} /> : <PanelRightClose size={18} />}
                             </button>
@@ -637,33 +847,42 @@ export default function NotebookDashboard() {
                                                 </button>
                                             </div>
                                         )}
-                                        {infographicStatus === 'completed' && infographic && (
-                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex items-start gap-4 hover:border-white/10 transition-all group">
-                                                <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 flex-shrink-0">
-                                                    <PieChart size={20} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="text-xs font-medium text-gray-200 mb-1">Infographic</h4>
-                                                    <p className="text-[10px] text-gray-500 truncate">Visual data representation</p>
-                                                </div>
-                                                <button onClick={() => {
-                                                    setActiveTool("Infographic");
-                                                    setMobileTab('chat');
-                                                }} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
-                                                    <Maximize2 size={18} />
-                                                </button>
-                                            </div>
-                                        )}
                                         {cardsStatus !== 'completed' && flowchartStatus !== 'completed' && quizStatus !== 'completed' &&
-                                            reportStatus !== 'completed' && slidesStatus !== 'completed' && tableStatus !== 'completed' && infographicStatus !== 'completed' && (
+                                            reportStatus !== 'completed' && slidesStatus !== 'completed' && tableStatus !== 'completed' && (
                                                 <div className="p-8 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
                                                     <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3 text-gray-600">
                                                         <BookOpen size={24} />
                                                     </div>
                                                     <p className="text-xs text-gray-500 font-medium">No notes yet</p>
-                                                    <p className="text-[10px] text-gray-600 mt-1">Select a tool to generate</p>
+                                                    <button
+                                                        onClick={handleGenerateAll}
+                                                        className="mt-3 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-medium rounded-lg transition-all border border-indigo-500/10"
+                                                    >
+                                                        ✨ Generate All
+                                                    </button>
                                                 </div>
                                             )}
+                                    </div>
+                                </div>
+
+
+
+                                <div className="space-y-3 mt-8">
+                                    <h3 className="text-[10px] text-gray-600 uppercase tracking-widest font-bold px-2">Saved Notes</h3>
+                                    <div
+                                        onClick={() => setIsSavedNotesModalOpen(true)}
+                                        className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex items-start gap-4 hover:border-indigo-500/20 transition-all group cursor-pointer"
+                                    >
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 flex-shrink-0">
+                                            <Bookmark size={20} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-xs font-medium text-gray-200 mb-1">Explore Saved Notes</h4>
+                                            <p className="text-[10px] text-gray-500 truncate">{savedNotes.length} notes captured from chat</p>
+                                        </div>
+                                        <button className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                            <Maximize2 size={18} />
+                                        </button>
                                     </div>
                                 </div>
 
@@ -671,85 +890,75 @@ export default function NotebookDashboard() {
                                     <h3 className="text-[10px] text-gray-600 uppercase tracking-widest font-bold px-2 mb-4">Study Activity</h3>
                                     <div className="space-y-4 px-2">
                                         {cardsStatus === 'generating' && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400">
-                                                    <RotateCw className="animate-spin" size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-300">Generating Flashcards...</p>
-                                                    <p className="text-[10px] text-gray-500">Processing concept associations</p>
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex flex-col gap-3 animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="h-3 bg-white/5 rounded w-24"></div>
+                                                        <div className="h-2 bg-white/5 rounded w-16"></div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
                                         {flowchartStatus === 'generating' && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                                                    <RotateCw className="animate-spin" size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-300">Building Mind Map...</p>
-                                                    <p className="text-[10px] text-gray-500">Mapping logical structures</p>
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex flex-col gap-3 animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="h-3 bg-white/5 rounded w-24"></div>
+                                                        <div className="h-2 bg-white/5 rounded w-16"></div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
                                         {quizStatus === 'generating' && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-                                                    <RotateCw className="animate-spin" size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-300">Creating Quiz...</p>
-                                                    <p className="text-[10px] text-gray-500">Generating assessment</p>
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex flex-col gap-3 animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="h-3 bg-white/5 rounded w-24"></div>
+                                                        <div className="h-2 bg-white/5 rounded w-16"></div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
                                         {reportStatus === 'generating' && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                                    <RotateCw className="animate-spin" size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-300">Researching Report...</p>
-                                                    <p className="text-[10px] text-gray-500">Analyzing deep context</p>
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex flex-col gap-3 animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="h-3 bg-white/5 rounded w-32"></div>
+                                                        <div className="h-2 bg-white/5 rounded w-20"></div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
                                         {slidesStatus === 'generating' && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400">
-                                                    <RotateCw className="animate-spin" size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-300">Designing Slides...</p>
-                                                    <p className="text-[10px] text-gray-500">Structuring presentation</p>
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex flex-col gap-3 animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="h-3 bg-white/5 rounded w-24"></div>
+                                                        <div className="h-2 bg-white/5 rounded w-16"></div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
                                         {tableStatus === 'generating' && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                                                    <RotateCw className="animate-spin" size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-300">Extracting Data...</p>
-                                                    <p className="text-[10px] text-gray-500">Formatting table rows</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {infographicStatus === 'generating' && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-400">
-                                                    <RotateCw className="animate-spin" size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-300">Drawing Infographic...</p>
-                                                    <p className="text-[10px] text-gray-500">Visualizing data points</p>
+                                            <div className="p-4 rounded-2xl bg-[#151515] border border-white/5 flex flex-col gap-3 animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="h-3 bg-white/5 rounded w-24"></div>
+                                                        <div className="h-2 bg-white/5 rounded w-16"></div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
 
+
                                         {cardsStatus === 'idle' && flowchartStatus === 'idle' && quizStatus === 'idle' &&
-                                            reportStatus === 'idle' && slidesStatus === 'idle' && tableStatus === 'idle' && infographicStatus === 'idle' && (
+                                            reportStatus === 'idle' && slidesStatus === 'idle' && tableStatus === 'idle' && (
                                                 <div className="flex items-center gap-3 opacity-30">
                                                     <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-gray-500">
                                                         <Clock size={14} />
@@ -789,6 +998,12 @@ export default function NotebookDashboard() {
                     <span className="text-[10px] font-medium">Studio</span>
                 </button>
             </div>
+            <SavedNotesModal
+                isOpen={isSavedNotesModalOpen}
+                onClose={() => setIsSavedNotesModalOpen(false)}
+                notes={savedNotes}
+            />
         </div>
     );
 }
+

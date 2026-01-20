@@ -132,7 +132,7 @@ class DeckState(TypedDict):
     report: str
     slides: List[Dict]
     table: List[Dict]
-    infographic: str
+    guide: Dict
 
 # --- NODES ---
 
@@ -222,8 +222,17 @@ def generate_slides_node(state: DeckState):
             return {"slides": res.get("slides", [])}
             
         if content:
-            data = json.loads(content.replace("```json", "").replace("```", "").strip())
-            return {"slides": data.get("slides", [])}
+            try:
+                data = json.loads(content.replace("```json", "").replace("```", "").strip(), strict=False)
+                return {"slides": data.get("slides", [])}
+            except Exception as e:
+                import re
+                # Try to extract JSON if there's text surrounding it
+                match = re.search(r'\{.*\}', content, re.DOTALL)
+                if match:
+                    data = json.loads(match.group(), strict=False)
+                    return {"slides": data.get("slides", [])}
+                raise e
             
     except Exception as e:
         print(f"Slides Gen Error: {e}")
@@ -267,58 +276,22 @@ def generate_table_node(state: DeckState):
             return {"table": [res]} if isinstance(res, dict) else {"table": res} # Handle potential structure mismatch
             
         if content:
-            data = json.loads(content.replace("```json", "").replace("```", "").strip())
-            # Normalize to list of dicts for simplicity if needed, but let's store the whole object
-            return {"table": [data]} 
-            
+            try:
+                data = json.loads(content.replace("```json", "").replace("```", "").strip(), strict=False)
+                return {"table": [data]}
+            except Exception as e:
+                import re
+                match = re.search(r'\{.*\}', content, re.DOTALL)
+                if match:
+                    data = json.loads(match.group(), strict=False)
+                    return {"table": [data]}
+                raise e            
     except Exception as e:
         print(f"Table Gen Error: {e}")
         return {"table": []}
     return {"table": []}
 
-def generate_infographic_node(state: DeckState):
-    print("--- NODE: INFOGRAPHIC GEN ---")
-    text = state['original_text'][:20000]
-    
-    # We ask for a mermaid chart that isn't a flowchart (since we have that). Maybe a Pie or Gantt or Class Diagram.
-    system_instruction = """You are a visualization expert. Create a Mermaid.js diagram to visualize the data in the text.
-    Recommended types: 'graph TD' (concept map), 'mindmap' (hierarchical), 'pie' (distribution), 'gantt' (timeline), or 'classDiagram' (structure).
-    
-    CRITICAL SYNTAX RULES:
-    1. Respond ONLY with the Mermaid syntax code. No markdown code blocks.
-    2. ALWAYS enclose node labels in double quotes. Example: id["Label Text"]
-    3. Do NOT use standalone 'note' lines in stateDiagrams.
-    4. Ensure all node IDs are simple alphanumeric characters (no spaces, no special chars).
-    5. Avoid 'stateDiagram' for complex text; use 'graph TD' instead to prevent syntax crashes.
-    """
-    
-    try:
-        content = ""
-        if google_client and model_is_google_native:
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction},
-                    contents=f"TEXT: {text}"
-                )
-                content = res.text
-            except Exception as e:
-                print(f"Native Info Gen Error: {e}")
-
-        if not content and llm:
-            prompt = ChatPromptTemplate.from_messages([("system", system_instruction), ("user", "TEXT: {text}")])
-            chain = prompt | llm
-            res = chain.invoke({"text": text})
-            content = res.content
-            
-        if content:
-            content = content.replace("```mermaid", "").replace("```", "").strip()
-            return {"infographic": content}
-            
-    except Exception as e:
-        print(f"Infographic Gen Error: {e}")
-        return {"infographic": "graph TD; Error[Generation Failed]"}
-    return {"infographic": ""}
+# Removed infographic node
 
 
 def generate_flowchart_node(state: DeckState):
@@ -439,7 +412,7 @@ def generate_cards_node(state: DeckState):
             if content:
                 # Manual cleanup and parsing for SDK response
                 content = content.replace("```json", "").replace("```", "").strip()
-                data = json.loads(content)
+                data = json.loads(content, strict=False)
                 if 'cards' in data:
                     new_cards.extend(data['cards'])
 
@@ -510,7 +483,7 @@ def generate_quiz_node(state: DeckState):
         if content:
             content = content.replace("```json", "").replace("```", "").strip()
             print(f"DEBUG: Native Quiz Gen Content length: {len(content)}")
-            data = json.loads(content)
+            data = json.loads(content, strict=False)
             return {"quiz": data.get("quiz", [])}
             
     except Exception as e:
@@ -541,7 +514,7 @@ def generate_review_node(state: Dict):
                 print(f"Native Review Gen Error (Falling back to LLM): {e}")
 
         if content:
-            data = json.loads(content.replace("```json", "").replace("```", "").strip())
+            data = json.loads(content.replace("```json", "").replace("```", "").strip(), strict=False)
             return {"review_cards": data.get("cards", [])}
             
         if llm:
@@ -554,6 +527,67 @@ def generate_review_node(state: Dict):
         print(f"Review Card Gen Error: {e}")
         return {"review_cards": []}
 
+def generate_guide_node(state: DeckState):
+    print("--- NODE: GUIDE GEN ---")
+    text = state['original_text'][:15000]
+    
+    system_instruction = """You are an expert AI Guide.
+    Create a welcoming, structured summary of the provided text.
+    Respond ONLY with JSON matching this format:
+    {{
+      "title": "A catchy, relevant title for the material",
+      "summary": "A concise, 2-paragraph summary of the key concepts.",
+      "questions": ["Question 1?", "Question 2?", "Question 3?"]
+    }}
+    """
+    
+    try:
+        content = ""
+        # 1. Google Native
+        if google_client and model_is_google_native:
+            try:
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
+                    contents=f"TEXT: {text}"
+                )
+                content = res.text
+            except Exception as e:
+                print(f"Native Guide Gen Error (Falling back to LLM): {e}")
+
+        # 2. LangChain Fallback
+        if not content and llm:
+            prompt = ChatPromptTemplate.from_messages([("system", system_instruction), ("user", "TEXT: {text}")])
+            chain = prompt | llm
+            res = chain.invoke({"text": text})
+            content = res.content
+            
+        if content:
+            try:
+                content = content.replace("```json", "").replace("```", "").strip()
+                data = json.loads(content, strict=False)
+                return {"guide": data}
+            except Exception as e:
+                import re
+                print(f"Guide JSON Parse Attempt 1 failed: {e}")
+                # Try extracting JSON with regex if there's garbage text
+                match = re.search(r'\{.*\}', content, re.DOTALL)
+                if match:
+                    try:
+                        data = json.loads(match.group(), strict=False)
+                        return {"guide": data}
+                    except: pass
+                raise e
+            
+    except Exception as e:
+        print(f"Guide Gen Error: {e}")
+        return {"guide": {
+            "title": "Guide Generation Failed",
+            "summary": "Could not generate summary.",
+            "questions": []
+        }}
+    return {"guide": {}}
+
 # --- GRAPH BUILD ---
 
 workflow = StateGraph(DeckState)
@@ -565,7 +599,6 @@ workflow.add_node("refiner", refine_deck)
 workflow.add_node("report_gen", generate_report_node)
 workflow.add_node("slides_gen", generate_slides_node)
 workflow.add_node("table_gen", generate_table_node)
-workflow.add_node("infographic_gen", generate_infographic_node)
 
 
 workflow.set_entry_point("chunker")
@@ -591,7 +624,7 @@ def run_selective_node(text: str, task_type: str, extra_data: Dict = None):
         "report": "",
         "slides": [],
         "table": [],
-        "infographic": ""
+        "guide": {}
     }
     if extra_data:
         state.update(extra_data)
@@ -619,8 +652,8 @@ def run_selective_node(text: str, task_type: str, extra_data: Dict = None):
                 state.update(generate_slides_node(state))
             elif task_type == "table":
                 state.update(generate_table_node(state))
-            elif task_type == "infographic":
-                state.update(generate_infographic_node(state))
+            elif task_type == "guide":
+                state.update(generate_guide_node(state))
                 
             return state
         except Exception as e:

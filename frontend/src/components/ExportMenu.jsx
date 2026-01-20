@@ -29,10 +29,6 @@ export default function ExportMenu({ onExport, type }) {
         'table': [
             { label: 'CSV (.csv)', format: 'csv', icon: TableIcon },
             { label: 'JSON Data (.json)', format: 'json', icon: FileText },
-        ],
-        'infographic': [
-            { label: 'Image (.png)', format: 'png', icon: Image },
-            { label: 'Scalable Vector (.svg)', format: 'svg', icon: Image },
         ]
     };
 

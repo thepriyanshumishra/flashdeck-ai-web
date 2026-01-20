@@ -1,7 +1,7 @@
 from openai import OpenAI
 import os
 import json
-import pypdf
+
 from dotenv import load_dotenv
 from google import genai
 import groq
@@ -35,14 +35,23 @@ if GROQ_API_KEY:
     print("--- Using Groq AI Engine ---")
     groq_client = groq.Groq(api_key=GROQ_API_KEY)
 
-def extract_text(pdf_path):
+import fitz  # PyMuPDF
+
+# ... (imports remain)
+
+def extract_text(pdf_source):
     text = ""
     try:
-        reader = pypdf.PdfReader(pdf_path)
-        for page in reader.pages:
-            result = page.extract_text()
-            if result:
-                text += result + "\n"
+        # Handle both bytes and file-like objects
+        if isinstance(pdf_source, bytes):
+            pdf_bytes = pdf_source
+        else:
+            pdf_bytes = pdf_source.read()
+            
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        
+        for page in doc:
+            text += page.get_text() + "\n"
     except Exception as e:
         print(f"PDF Error: {e}")
     return text
