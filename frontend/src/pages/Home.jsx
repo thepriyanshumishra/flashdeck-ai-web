@@ -16,7 +16,7 @@ export default function Home() {
 
     useEffect(() => {
         if (!loading && user) {
-            navigate('/library');
+            navigate('/library', { replace: true });
         }
     }, [user, loading, navigate]);
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     auth,
     googleProvider,
@@ -8,6 +8,7 @@ import {
     sendSignInLinkToEmail
 } from "../lib/firebase";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, User, Send, Sparkles, Loader2 } from "lucide-react";
 import Button from "../components/ui/Button";
@@ -23,7 +24,7 @@ const GoogleIcon = () => (
 );
 
 export default function LoginPage() {
-    const navigate = useNavigate();
+    const { user, loading: authLoading } = useAuth();
     const [view, setView] = useState("password"); // password, magic
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -32,13 +33,20 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [info, setInfo] = useState("");
 
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user && !authLoading) {
+            navigate("/library", { replace: true });
+        }
+    }, [user, authLoading, navigate]);
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError("");
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            setTimeout(() => navigate("/library"), 500); // Small perceptual gap
+            setTimeout(() => navigate("/library", { replace: true }), 500);
         } catch (err) {
             setError("Invalid email or password");
             console.error(err);
@@ -75,7 +83,7 @@ export default function LoginPage() {
         setError("");
         try {
             await signInWithPopup(auth, googleProvider);
-            setTimeout(() => navigate("/library"), 1000);
+            setTimeout(() => navigate("/library", { replace: true }), 1000);
         } catch (err) {
             setError("Failed to login with Google");
             console.error(err);
@@ -88,7 +96,7 @@ export default function LoginPage() {
         setError("");
         try {
             await signInAnonymously(auth);
-            setTimeout(() => navigate("/library"), 1000);
+            setTimeout(() => navigate("/library", { replace: true }), 1000);
         } catch (err) {
             setError("Guest login failed. Please try again.");
             console.error(err);

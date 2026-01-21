@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth, googleProvider, signInWithPopup, createUserWithEmailAndPassword, updateProfile } from "../lib/firebase";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import Button from "../components/ui/Button";
@@ -15,6 +16,7 @@ const GoogleIcon = () => (
 );
 
 export default function SignupPage() {
+    const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -23,6 +25,13 @@ export default function SignupPage() {
     const [socialLoading, setSocialLoading] = useState(false);
     const [error, setError] = useState("");
 
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user && !authLoading) {
+            navigate("/library", { replace: true });
+        }
+    }, [user, authLoading, navigate]);
+
     const handleSignup = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -30,7 +39,7 @@ export default function SignupPage() {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, { displayName: name });
-            setTimeout(() => navigate("/library"), 500);
+            setTimeout(() => navigate("/library", { replace: true }), 500);
         } catch (err) {
             if (err.code === 'auth/email-already-in-use') {
                 setError("Email is already registered");
@@ -50,7 +59,7 @@ export default function SignupPage() {
         setError("");
         try {
             await signInWithPopup(auth, googleProvider);
-            setTimeout(() => navigate("/library"), 1000);
+            setTimeout(() => navigate("/library", { replace: true }), 1000);
         } catch (err) {
             setError("Failed to sign up with Google");
             console.error(err);

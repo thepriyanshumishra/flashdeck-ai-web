@@ -112,7 +112,7 @@ export default function NotebookDashboard() {
 
     const handleCreateNew = () => {
         handleClearAll();
-        navigate('/');
+        navigate('/library');
     };
 
     const handleGenerateAll = () => {
