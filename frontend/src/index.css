@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Lexend+Deca:wght@300;400;500;600;700&display=swap');
 @import '@fontsource/outfit/400.css';
 @import '@fontsource/outfit/500.css';
 @import '@fontsource/outfit/600.css';
@@ -8,16 +9,34 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Poppins', 'Outfit', system-ui, -apple-system, sans-serif;
-  color-scheme: dark;
+  font-family: 'Lexend', 'Outfit', system-ui, -apple-system, sans-serif;
+  accent-color: #000;
 }
 
-.font-heading {
-  font-family: 'Lexend', sans-serif;
+h1,
+h2,
+h3,
+h4,
+button,
+input,
+select,
+textarea,
+.font-lexend {
+  font-family: 'Lexend', sans-serif !important;
 }
 
-.font-handwriting {
-  font-family: 'Caveat', cursive;
+.font-display {
+  font-family: 'Lexend Deca', sans-serif !important;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: #ffffff;
+  color: #202124;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 .bg-dots {
@@ -30,15 +49,6 @@
     linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
-}
-
-body {
-  margin: 0;
-  background-color: #000000;
-  color: #e5e5e5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
 @layer utilities {
@@ -81,6 +91,23 @@ body {
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* 3D Transform Utilities for Flashcards */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
   }
 }
 

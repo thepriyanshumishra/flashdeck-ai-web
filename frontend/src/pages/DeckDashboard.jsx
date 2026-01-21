@@ -280,7 +280,35 @@ export default function DeckDashboard() {
 
                     <div className="hidden sm:flex items-center gap-3">
                         <button className="p-1.5 text-gray-500 hover:text-white"><BarChart2 size={18} /></button>
-                        <button className="p-1.5 text-gray-500 hover:text-white"><Share2 size={18} /></button>
+                        <button
+                            onClick={async () => {
+                                if (!deckId) return alert("Deck must be saved before sharing.");
+                                const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+                                try {
+                                    const res = await fetch(`${API_BASE}/decks/${deckId}/share`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            title: deckName,
+                                            category: "Shared",
+                                            sources: files.length,
+                                            image: "https://images.unsplash.com/photo-1544648151-1823ed3bd333?q=80&w=2000&auto=format&fit=crop",
+                                            color: "from-purple-900/40 to-black/80"
+                                        })
+                                    });
+                                    const data = await res.json();
+                                    if (data.status === 'success') {
+                                        alert("Deck shared to community!");
+                                    }
+                                } catch (err) {
+                                    console.error("Share error:", err);
+                                    alert("Failed to share deck.");
+                                }
+                            }}
+                            className="p-1.5 text-gray-500 hover:text-white transition-colors"
+                        >
+                            <Share2 size={18} />
+                        </button>
                         <button className="p-1.5 text-gray-500 hover:text-white"><Settings size={18} /></button>
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 ml-2"></div>
                     </div>
@@ -379,7 +407,7 @@ export default function DeckDashboard() {
                             <div className="h-full">
                                 <ExpandableMindMap
                                     data={flowcharts[0]}
-                                    onRegenerate={() => triggerGeneration('flowchart', null, true)}
+                                    onRegenerate={() => triggerGeneration('flowchart', {}, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
                             </div>
@@ -387,7 +415,7 @@ export default function DeckDashboard() {
                             <div className="h-full">
                                 <ReportViewer
                                     markdown={report}
-                                    onRegenerate={() => triggerGeneration('report', null, true)}
+                                    onRegenerate={() => triggerGeneration('report', {}, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
                             </div>
@@ -395,7 +423,7 @@ export default function DeckDashboard() {
                             <div className="h-full">
                                 <SlideDeckViewer
                                     data={slides}
-                                    onRegenerate={() => triggerGeneration('slides', null, true)}
+                                    onRegenerate={() => triggerGeneration('slides', {}, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
                             </div>
@@ -403,7 +431,7 @@ export default function DeckDashboard() {
                             <div className="h-full">
                                 <DataTableView
                                     data={table}
-                                    onRegenerate={() => triggerGeneration('table', null, true)}
+                                    onRegenerate={() => triggerGeneration('table', {}, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
                             </div>

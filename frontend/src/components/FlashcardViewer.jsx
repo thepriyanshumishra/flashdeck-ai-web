@@ -1,18 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { useDeck } from '../context/DeckContext';
-import { Download, RotateCw, Sparkles, Image as ImageIcon, FileText, Presentation, FileType } from 'lucide-react';
+import { Download, RotateCw, Sparkles, Image as ImageIcon, FileText, Presentation, FileType, ArrowLeft } from 'lucide-react';
 import ReviewSection from './sections/ReviewSection';
 import ExportMenu from './ExportMenu';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 
-export default function FlashcardViewer() {
+export default function FlashcardViewer({ onClose }) {
     const { cards, deckName, deckId, triggerGeneration } = useDeck();
     const [selectedCard, setSelectedCard] = useState(null);
     const cardsRef = useRef(null);
 
     const handleRegenerate = () => {
-        triggerGeneration('cards', deckId);
+        triggerGeneration('cards', {}, true);
     };
 
     const downloadPDF = async () => {
@@ -225,6 +225,15 @@ export default function FlashcardViewer() {
             {/* Header */}
             <div className="flex items-center justify-between px-8 py-6 bg-[#0d0d0d]/80 backdrop-blur-md border-b border-white/5 z-10">
                 <div className="flex items-center gap-4">
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                            title="Back to Chat"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                    )}
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shadow-inner">
                         <Sparkles size={24} />
                     </div>

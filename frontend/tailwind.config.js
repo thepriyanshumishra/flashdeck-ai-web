@@ -8,6 +8,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        lexend: ['Lexend', 'sans-serif'],
+        display: ['Lexend Deca', 'Lexend', 'sans-serif'],
       },
       colors: {
         background: "#0a0a0a",

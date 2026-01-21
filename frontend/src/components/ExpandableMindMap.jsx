@@ -3,7 +3,7 @@ import {
     ChevronRight, ChevronLeft, Network,
     RefreshCw, AlertCircle, FileText,
 } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import ExportMenu from './ExportMenu';
 import html2canvas from 'html2canvas';
 import { saveAs } from 'file-saver';

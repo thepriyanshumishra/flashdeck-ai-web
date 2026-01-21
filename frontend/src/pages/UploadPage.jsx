@@ -29,7 +29,8 @@ export default function UploadPage() {
         setSlides, setSlidesStatus,
         setTable, setTableStatus,
         setQuiz, setQuizStatus,
-        setGuide, setGuideStatus
+        setGuide, setGuideStatus,
+        saveDeckToList
     } = useDeck();
 
     const onGenerateClick = async () => {
@@ -71,6 +72,16 @@ export default function UploadPage() {
             setTable([]); setTableStatus('idle');
             setQuiz([]); setQuizStatus('idle');
             setGuide(null); setGuideStatus('idle');
+
+            // Save to list
+            saveDeckToList({
+                id: data.deck_id || Date.now().toString(),
+                name: data.deck_name,
+                sources: files.length,
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                icon: ["📚", "💻", "🎨", "⚛️", "🧠", "🎓"][Math.floor(Math.random() * 6)],
+                color: ["bg-blue-50", "bg-emerald-50", "bg-purple-50", "bg-orange-50", "bg-stone-50", "bg-sky-50"][Math.floor(Math.random() * 6)]
+            });
 
             // Navigate to the Deck Dashboard
             navigate('/deck');

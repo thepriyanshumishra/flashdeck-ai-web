@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 const DeckContext = createContext();
 
@@ -28,6 +30,7 @@ const safeLocalStorage = {
 };
 
 export function DeckProvider({ children }) {
+    const { user } = useAuth();
     const initialDeckName = localStorage.getItem('last_deck_name') || "";
     const initialGeneratedContent = localStorage.getItem('last_generated_content') || "";
 
@@ -94,6 +97,9 @@ export function DeckProvider({ children }) {
         return saved ? JSON.parse(saved) : null;
     });
     const [guideStatus, setGuideStatus] = useState(() => localStorage.getItem(`guideStatus_${initialDeckName}`) || 'idle');
+    // List of all decks
+    const [decks, setDecks] = useState([]);
+
     const [savedNotes, setSavedNotes] = useState(() => {
         const saved = localStorage.getItem(`savedNotes_${initialDeckName}`);
         return saved ? JSON.parse(saved) : [];
@@ -104,6 +110,7 @@ export function DeckProvider({ children }) {
     useEffect(() => {
         if (deckName) {
             safeLocalStorage.setItem('last_deck_name', deckName);
+            safeLocalStorage.setItem('user_decks', JSON.stringify(decks)); // Persist the list
             safeLocalStorage.setItem(`messages_${deckName}`, JSON.stringify(messages));
             safeLocalStorage.setItem(`cards_${deckName}`, JSON.stringify(cards));
             safeLocalStorage.setItem(`flowcharts_${deckName}`, JSON.stringify(flowcharts));
@@ -121,17 +128,45 @@ export function DeckProvider({ children }) {
             safeLocalStorage.setItem(`slidesStatus_${deckName}`, slidesStatus);
             safeLocalStorage.setItem(`table_${deckName}`, JSON.stringify(table));
             safeLocalStorage.setItem(`tableStatus_${deckName}`, tableStatus);
+            if (deckId) safeLocalStorage.setItem(`id_${deckName}`, deckId); // Store ID per deck
             if (deckId) safeLocalStorage.setItem('last_deck_id', deckId);
 
             // Guide and Notes Persistence
             safeLocalStorage.setItem(`guide_${deckName}`, JSON.stringify(guide));
             safeLocalStorage.setItem(`guideStatus_${deckName}`, guideStatus);
             safeLocalStorage.setItem(`savedNotes_${deckName}`, JSON.stringify(savedNotes));
+            if (generatedContent) {
+                safeLocalStorage.setItem(`content_${deckName}`, generatedContent);
+            }
         }
         if (generatedContent) {
             safeLocalStorage.setItem('last_generated_content', generatedContent);
         }
-    }, [messages, cards, flowcharts, cardsStatus, flowchartStatus, hasInitialChatRun, deckName, deckId, generatedContent, quiz, quizStatus, reviewCards, report, reportStatus, slides, slidesStatus, table, tableStatus, guide, guideStatus, savedNotes]);
+    }, [messages, cards, flowcharts, cardsStatus, flowchartStatus, hasInitialChatRun, deckName, deckId, generatedContent, quiz, quizStatus, reviewCards, report, reportStatus, slides, slidesStatus, table, tableStatus, guide, guideStatus, savedNotes]); // Removed decks from dep array since we sync differently
+
+    // Sync Decks with Supabase
+    useEffect(() => {
+        if (!user) {
+            setDecks([]);
+            return;
+        }
+
+        const fetchDecks = async () => {
+            const { data, error } = await supabase
+                .from('decks')
+                .select('*')
+                .eq('user_id', user.uid)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Error fetching decks:", error);
+            } else {
+                setDecks(data || []);
+            }
+        };
+
+        fetchDecks();
+    }, [user]);
 
     const handleSendMessage = useCallback(async (text) => {
         if (!text.trim()) return;
@@ -390,7 +425,12 @@ export function DeckProvider({ children }) {
     }
 
     const handleClearAll = () => {
-        safeLocalStorage.clear();
+        // Only clear session-related keys
+        const keysToRemove = [
+            'last_deck_name', 'last_deck_id', 'last_generated_content',
+            'current_deck_id' // if any
+        ];
+        keysToRemove.forEach(k => safeLocalStorage.removeItem(k));
         setFiles([]);
         setUploadProgress(0);
         setCards([]);
@@ -427,6 +467,109 @@ export function DeckProvider({ children }) {
         }
     }
 
+    const saveDeckToList = async (newDeck) => {
+        if (!user) return;
+
+        // Optimistic UI Update
+        setDecks(prev => {
+            const exists = prev.find(d => d.id === newDeck.id);
+            if (exists) {
+                return prev.map(d => (d.id === newDeck.id) ? { ...d, ...newDeck } : d);
+            }
+            return [newDeck, ...prev];
+        });
+
+        // Save to Supabase
+        const deckPayload = {
+            id: newDeck.id,
+            user_id: user.uid,
+            title: newDeck.name || newDeck.title,
+            metadata: newDeck, // Store full JSON for now (color, icon, etc)
+            created_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase
+            .from('decks')
+            .upsert(deckPayload, { onConflict: 'id' });
+
+        if (error) console.error("Supabase Save Error:", error);
+    };
+
+    const loadDeck = (targetDeckName) => {
+        if (!targetDeckName) return;
+        setDeckName(targetDeckName);
+
+        // Load all data from localStorage for this deck
+        const id = localStorage.getItem(`id_${targetDeckName}`);
+        const content = localStorage.getItem(`content_${targetDeckName}`);
+        const msgs = localStorage.getItem(`messages_${targetDeckName}`);
+        const crds = localStorage.getItem(`cards_${targetDeckName}`);
+        const flows = localStorage.getItem(`flowcharts_${targetDeckName}`);
+        const qz = localStorage.getItem(`quiz_${targetDeckName}`);
+        const gd = localStorage.getItem(`guide_${targetDeckName}`);
+        const sn = localStorage.getItem(`savedNotes_${targetDeckName}`);
+
+        setDeckId(id);
+        setGeneratedContent(content || "");
+        setMessages(msgs ? JSON.parse(msgs) : []);
+        setCards(crds ? JSON.parse(crds) : []);
+        setFlowcharts(flows ? JSON.parse(flows) : []);
+        setQuiz(qz ? JSON.parse(qz) : []);
+        setGuide(gd ? JSON.parse(gd) : null);
+        setSavedNotes(sn ? JSON.parse(sn) : []);
+
+        setCardsStatus(localStorage.getItem(`cardsStatus_${targetDeckName}`) || 'idle');
+        setFlowchartStatus(localStorage.getItem(`flowchartStatus_${targetDeckName}`) || 'idle');
+        setQuizStatus(localStorage.getItem(`quizStatus_${targetDeckName}`) || 'idle');
+        setGuideStatus(localStorage.getItem(`guideStatus_${targetDeckName}`) || 'idle');
+        setReportStatus(localStorage.getItem(`reportStatus_${targetDeckName}`) || 'idle');
+        setSlidesStatus(localStorage.getItem(`slidesStatus_${targetDeckName}`) || 'idle');
+        setTableStatus(localStorage.getItem(`tableStatus_${targetDeckName}`) || 'idle');
+        setHasInitialChatRun(localStorage.getItem(`hasInitialChatRun_${targetDeckName}`) === 'true');
+    };
+
+    const deleteDeck = async (deckToDelete) => {
+        // Optimistic UI Update
+        setDecks(prev => prev.filter(d => d.id !== deckToDelete.id));
+
+        if (user) {
+            const { error } = await supabase
+                .from('decks')
+                .delete()
+                .eq('id', deckToDelete.id);
+            if (error) console.error("Supabase Delete Error:", error);
+        }
+
+        // Also clear its data from localStorage (legacy/session cache)
+        const name = deckToDelete.name || deckToDelete.title;
+        if (!name) return;
+
+        localStorage.removeItem(`messages_${name}`);
+        localStorage.removeItem(`cards_${name}`);
+        localStorage.removeItem(`flowcharts_${name}`);
+        localStorage.removeItem(`cardsStatus_${name}`);
+        localStorage.removeItem(`flowchartStatus_${name}`);
+        localStorage.removeItem(`quizStatus_${name}`);
+        localStorage.removeItem(`hasInitialChatRun_${name}`);
+        localStorage.removeItem(`quiz_${name}`);
+        localStorage.removeItem(`reviewCards_${name}`);
+        localStorage.removeItem(`report_${name}`);
+        localStorage.removeItem(`reportStatus_${name}`);
+        localStorage.removeItem(`slides_${name}`);
+        localStorage.removeItem(`slidesStatus_${name}`);
+        localStorage.removeItem(`table_${name}`);
+        localStorage.removeItem(`tableStatus_${name}`);
+        localStorage.removeItem(`id_${name}`);
+        localStorage.removeItem(`guide_${name}`);
+        localStorage.removeItem(`guideStatus_${name}`);
+        localStorage.removeItem(`savedNotes_${name}`);
+        localStorage.removeItem(`content_${name}`);
+
+        if (deckName === name) {
+            handleClearAll();
+        }
+    };
+
     return (
         <DeckContext.Provider value={{
             files, setFiles,
@@ -459,6 +602,11 @@ export function DeckProvider({ children }) {
             guideStatus, setGuideStatus,
             savedNotes, setSavedNotes,
             saveNote,
+
+            decks,
+            saveDeckToList,
+            loadDeck,
+            deleteDeck,
 
             handleSendMessage,
             triggerGeneration,

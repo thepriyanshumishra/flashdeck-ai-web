@@ -1,14 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDeck } from '../context/DeckContext';
-import { Brain, ChevronRight, PlayCircle, Sparkles } from 'lucide-react';
+import { Brain, ChevronRight, PlayCircle, Sparkles, ArrowLeft, RotateCw } from 'lucide-react';
 
 export default function QuizIntroView({ onClose }) {
-    const { quiz, deckName } = useDeck();
+    const { quiz, deckName, deckId, triggerGeneration } = useDeck();
     const navigate = useNavigate();
 
     const handleStart = () => {
         navigate('/deck/quiz');
+    };
+
+    const handleRegenerate = () => {
+        triggerGeneration('quiz', {}, true);
     };
 
     if (!quiz || quiz.length === 0) {
@@ -27,6 +31,15 @@ export default function QuizIntroView({ onClose }) {
             {/* Header */}
             <div className="flex items-center justify-between px-8 py-6 bg-[#0d0d0d]/80 backdrop-blur-md border-b border-white/5 z-10">
                 <div className="flex items-center gap-4">
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                            title="Back to Chat"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                    )}
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shadow-inner">
                         <Brain size={24} />
                     </div>
@@ -34,6 +47,15 @@ export default function QuizIntroView({ onClose }) {
                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] block leading-none mb-1">Knowledge Check</span>
                         <h2 className="text-lg font-bold text-white font-heading tracking-tight">Quiz Assessment</h2>
                     </div>
+                </div>
+                <div>
+                    <button
+                        onClick={handleRegenerate}
+                        className="w-10 h-10 flex items-center justify-center hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
+                        title="Regenerate Quiz"
+                    >
+                        <RotateCw size={18} />
+                    </button>
                 </div>
             </div>
 
