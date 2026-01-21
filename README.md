@@ -40,10 +40,11 @@ graph TD
 ## 🚀 Key Features
 
 -   **High-Speed AI Interface**: Powered by **Groq** for near-instant generation (250+ tokens/sec).
+-   **100% Free Public Beta**: All premium features (Pro and Team tiers) are accessible for $0 during our testing phase.
 -   **Interactive Quiz System**: Test yourself with AI-generated MCQs directly inside the platform.
 -   **Targeted Review**: Missed a question? The AI automatically creates focused study cards for those specific weak spots.
 -   **Automated Mind Mapping**: Convert lecture notes into visual hierarchies using **Mermaid.js**.
--   **Intelligent Chat**: Context-aware brainstorming with your documents using Llama 3.3.
+-   **Glassmorphic 3D Interface**: Premium dark-mode aesthetics with custom AI-generated 3D illustrations.
 -   **Universal Export**: 
     -   📸 **Image Grid** (PNG) for sharing.
     -   📄 **PDF** (High-Res) for printing.
@@ -55,15 +56,15 @@ graph TD
 
 ### Backend (Python)
 -   **Engine**: Groq (Llama 3.3 70B Versatile)
--   **Fallback Models**: Google Gemini 1.5 Flash / OpenRouter
--   **AI Orchestration**: LangChain, LangGraph
--   **PDF Processing**: PyPDF
+-   **Orchestration**: LangGraph, LangChain
+-   **API Framework**: FastAPI
+-   **Processing**: PyPDF for document extraction
 
 ### Frontend (React)
--   **Framework**: Vite + React
--   **Styling**: Vanilla CSS (Premium Dark Mode)
--   **Icons**: Lucide React
--   **Visuals**: Mermaid.js for Mind Maps
+-   **Framework**: Vite + React + Framer Motion
+-   **Authentication**: Firebase (Magic Links)
+-   **Styling**: Vanilla CSS (Premium Dark Theme)
+-   **Illustrations**: Custom AI-generated 3D assets
 
 ---
 
@@ -109,7 +110,12 @@ Visit `http://localhost:5173` and start your high-speed study session! 🎓
 
 ## 🧑‍💻 Author
 
-Created by **[Priyanshu Mishra](https://github.com/thepriyanshumishra)**.
+Created with 🤍 by **[Priyanshu Mishra](https://github.com/thepriyanshumishra)**.
+
+Connect with me:
+-   **X (Twitter)**: [@thedarkpcm](https://x.com/thedarkpcm)
+-   **LinkedIn**: [Priyanshu Mishra](https://www.linkedin.com/in/thepriyanshumishra/)
+-   **Instagram**: [@realpriyanshumishra](https://www.instagram.com/realpriyanshumishra)
 
 ## 🤝 Contributors
 
