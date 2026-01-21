@@ -17,9 +17,9 @@ export default function DocsPage() {
         },
         "getting-started": {
             title: "Getting Started",
-            content: "To get started, simply sign in and create your first notebook. You can upload PDFs, Word documents, or even paste raw text from your lectures.",
+            content: "To get started, simply sign in and create your first deck. You can upload PDFs, Word documents, or even paste raw text from your lectures.",
             steps: [
-                "Create a new Notebook from the dashboard.",
+                "Create a new Deck from the dashboard.",
                 "Upload your study materials (PDF, DOCX, TXT).",
                 "Wait for AI to process and synthesize your content.",
                 "Start studying with flashcards, quizzes, or mind maps."

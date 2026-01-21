@@ -72,8 +72,8 @@ export default function UploadPage() {
             setQuiz([]); setQuizStatus('idle');
             setGuide(null); setGuideStatus('idle');
 
-            // Navigate to the Notebook Dashboard
-            navigate('/notebook');
+            // Navigate to the Deck Dashboard
+            navigate('/deck');
 
         } catch (error) {
             console.error(error);

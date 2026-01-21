@@ -77,7 +77,7 @@ export default function QuizPage() {
             <Layout>
                 <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0a0a0a]">
                     <AlertCircle size={48} className="text-gray-600 mb-6" />
-                    <p className="text-gray-400 mb-8 text-center max-w-md">You need to trigger the quiz generation from the Studio tools in your notebook first.</p>
+                    <p className="text-gray-400 mb-8 text-center max-w-md">You need to trigger the quiz generation from the Studio tools in your deck first.</p>
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                         <button
                             onClick={() => triggerGeneration('quiz', null, true)}
@@ -87,10 +87,10 @@ export default function QuizPage() {
                             Regenerate Quiz
                         </button>
                         <button
-                            onClick={() => navigate('/notebook')}
+                            onClick={() => navigate('/deck')}
                             className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 transition-all flex items-center gap-2"
                         >
-                            <ArrowLeft size={18} /> Back to Notebook
+                            <ArrowLeft size={18} /> Back to Deck
                         </button>
                     </div>
                 </div>
@@ -105,7 +105,7 @@ export default function QuizPage() {
                     {/* Header */}
                     <div className="flex items-center justify-between mb-8">
                         <button
-                            onClick={() => navigate('/notebook')}
+                            onClick={() => navigate('/deck')}
                             className="p-2 text-gray-500 hover:text-white transition-colors"
                         >
                             <ArrowLeft size={24} />
@@ -260,10 +260,10 @@ export default function QuizPage() {
                                 </div>
 
                                 <button
-                                    onClick={() => navigate('/notebook')}
+                                    onClick={() => navigate('/deck')}
                                     className="w-full max-w-lg px-8 py-3 text-sm text-gray-500 hover:text-white transition-colors"
                                 >
-                                    Return to Notebook
+                                    Return to Deck
                                 </button>
                             </div>
                         )}
@@ -306,7 +306,7 @@ export default function QuizPage() {
                                 </div>
 
                                 <button
-                                    onClick={() => navigate('/notebook')}
+                                    onClick={() => navigate('/deck')}
                                     className="w-full py-5 bg-white text-black font-bold rounded-2xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 shadow-2xl mb-8"
                                 >
                                     Mastery Complete

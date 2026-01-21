@@ -4,7 +4,7 @@ import { MessageSquare, Users, Award, Shield, Heart, Zap, Coffee, Globe } from "
 export default function CommunityPage() {
     const stats = [
         { label: "Active Learners", value: "24k+" },
-        { label: "Notebooks Shared", value: "112k+" },
+        { label: "Decks Shared", value: "112k+" },
         { label: "Monthly Sessions", value: "850k" }
     ];
 

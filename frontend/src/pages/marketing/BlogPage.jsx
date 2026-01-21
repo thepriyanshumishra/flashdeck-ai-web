@@ -22,7 +22,7 @@ export default function BlogPage() {
             readTime: "6 min"
         },
         {
-            title: "Introducing Collaborative Notebooks",
+            title: "Introducing Collaborative Decks",
             date: "Jan 12, 2026",
             author: "Product Team",
             category: "Update",

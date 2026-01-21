@@ -238,11 +238,11 @@ export default function FlashcardsPage() {
                 {/* Navigation Header */}
                 <div className="flex items-center justify-between mb-8 relative z-10">
                     <button
-                        onClick={() => navigate('/notebook')}
+                        onClick={() => navigate('/deck')}
                         className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group px-4 py-2 rounded-xl hover:bg-white/5"
                     >
                         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-sm font-medium">Back to Notebook</span>
+                        <span className="text-sm font-medium">Back to Deck</span>
                     </button>
 
                     <Button

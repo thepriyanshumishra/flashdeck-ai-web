@@ -6,7 +6,7 @@ export default function HelpCenterPage() {
         {
             icon: HelpCircle,
             title: "Getting Started",
-            articles: ["Creating your first notebook", "Uploading different file types", "Account verification", "Setting up your profile"],
+            articles: ["Creating your first deck", "Uploading different file types", "Account verification", "Setting up your profile"],
             color: "text-purple-400"
         },
         {

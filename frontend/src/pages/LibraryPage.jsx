@@ -10,9 +10,9 @@ import { motion } from 'framer-motion';
 export default function LibraryPage() {
     const navigate = useNavigate();
     const [viewMode, setViewMode] = useState('grid');
-    const [activeTab, setActiveTab] = useState('My notebooks');
+    const [activeTab, setActiveTab] = useState('My decks');
 
-    const featuredNotebooks = [
+    const featuredDecks = [
         {
             title: "Jane Austen: The Complete Works",
             category: "Arts & Culture",
@@ -39,19 +39,19 @@ export default function LibraryPage() {
         }
     ];
 
-    const notebooks = [
+    const decks = [
         { title: "JavaScript Fundamentals and...", sources: 1, date: "Nov 25, 2025", icon: "👨‍💻", color: "bg-blue-50" },
         { title: "Fundamentals of C Programming...", sources: 19, date: "Nov 22, 2025", icon: "💻", color: "bg-gray-50" },
         { title: "Electrodynamics, Superconductivity...", sources: 2, date: "Nov 19, 2025", icon: "⚛️", color: "bg-emerald-50" },
         { title: "Engineering Mathematics-I...", sources: 1, date: "Nov 17, 2025", icon: "📐", color: "bg-stone-50" },
         { title: "Web Development Syllabus: HTML, CS...", sources: 2, date: "Nov 14, 2025", icon: "📚", color: "bg-sky-50" },
         { title: "Cascading Style Sheets...", sources: 3, date: "Nov 14, 2025", icon: "🎨", color: "bg-yellow-50" },
-        { title: "Untitled notebook", sources: 0, date: "Nov 5, 2025", icon: "📔", color: "bg-orange-50" },
+        { title: "Untitled deck", sources: 0, date: "Nov 5, 2025", icon: "📔", color: "bg-orange-50" },
         { title: "Computer Science and Engineering...", sources: 2, date: "Oct 8, 2025", icon: "🎓", color: "bg-purple-50" },
         { title: "A Syllabus of Human Values and Harmony", sources: 11, date: "Sep 25, 2025", icon: "🤝", color: "bg-green-50" }
     ];
 
-    const tabs = ["All", "My notebooks", "Featured notebooks"];
+    const tabs = ["All", "My decks", "Featured decks"];
 
     return (
         <div className="min-h-screen bg-[#F8F9FA] text-[#202124] font-sans">
@@ -126,11 +126,11 @@ export default function LibraryPage() {
                 </div>
 
                 {/* Featured Section */}
-                {activeTab !== "My notebooks" && (
+                {activeTab !== "My decks" && (
                     <section className="mb-14">
-                        <h2 className="text-xl font-medium mb-6">Featured notebooks</h2>
+                        <h2 className="text-xl font-medium mb-6">Featured decks</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 overflow-x-auto pb-4 no-scrollbar">
-                            {featuredNotebooks.map((nb, i) => (
+                            {featuredDecks.map((nb, i) => (
                                 <motion.div
                                     key={i}
                                     whileHover={{ y: -4 }}
@@ -163,11 +163,11 @@ export default function LibraryPage() {
                     </section>
                 )}
 
-                {/* Recent Notebooks Section */}
+                {/* Recent Decks Section */}
                 <section>
-                    <h2 className="text-xl font-medium mb-6">Recent notebooks</h2>
+                    <h2 className="text-xl font-medium mb-6">Recent decks</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                        {/* New Notebook Placeholder */}
+                        {/* New Deck Placeholder */}
                         <motion.div
                             whileHover={{ scale: 1.02 }}
                             onClick={() => navigate('/upload')}
@@ -176,15 +176,15 @@ export default function LibraryPage() {
                             <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                                 <Plus size={28} />
                             </div>
-                            <span className="text-sm font-medium text-gray-500 group-hover:text-black">Create new notebook</span>
+                            <span className="text-sm font-medium text-gray-500 group-hover:text-black">Create new deck</span>
                         </motion.div>
 
                         {/* Recent Cards */}
-                        {notebooks.map((nb, i) => (
+                        {decks.map((nb, i) => (
                             <motion.div
                                 key={i}
                                 whileHover={{ scale: 1.02, y: -4 }}
-                                onClick={() => navigate('/notebook')}
+                                onClick={() => navigate('/deck')}
                                 className={`aspect-square ${nb.color} rounded-[2.5rem] p-8 flex flex-col justify-between cursor-pointer border border-transparent hover:border-gray-200 transition-all shadow-sm relative group`}
                             >
                                 <div className="flex justify-between items-start">

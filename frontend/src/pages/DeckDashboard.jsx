@@ -28,10 +28,10 @@ import SavedNotesModal from '../components/SavedNotesModal';
 import FlowchartView from '../components/FlowchartView';
 import GenerationSettingsModal from '../components/GenerationSettingsModal';
 
-export default function NotebookDashboard() {
+export default function DeckDashboard() {
     const navigate = useNavigate();
-    const [isStudioCollapsed, setIsStudioCollapsed] = useState(false);
-    const [isSourcesCollapsed, setIsSourcesCollapsed] = useState(false);
+    const [isStudioCollapsed, setIsStudioCollapsed] = useState(true);
+    const [isSourcesCollapsed, setIsSourcesCollapsed] = useState(true);
     const [activeTool, setActiveTool] = useState("Chat");
     const [localInputValue, setLocalInputValue] = useState("");
     const [isSavedNotesModalOpen, setIsSavedNotesModalOpen] = useState(false);
@@ -258,7 +258,7 @@ export default function NotebookDashboard() {
         <div className="h-screen bg-background text-gray-200 font-sans overflow-hidden flex flex-col">
             <Navbar />
 
-            {/* Sub-header for Notebook Title & Actions */}
+            {/* Sub-header for Deck Title & Actions */}
             <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-[#0a0a0a]">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center hidden sm:flex">
@@ -268,14 +268,14 @@ export default function NotebookDashboard() {
                     <div className="md:hidden w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
                         <Brain size={18} className="text-indigo-400" />
                     </div>
-                    <h1 className="text-sm font-medium text-white max-w-[200px] truncate">{deckName || "Untitled Notebook"}</h1>
+                    <h1 className="text-sm font-medium text-white max-w-[200px] truncate">{deckName || "Untitled Deck"}</h1>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-3">
                     <button
                         onClick={handleCreateNew}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-all text-xs border border-white/5 whitespace-nowrap"
                     >
-                        <Plus size={14} /> <span className="hidden sm:inline">Create notebook</span>
+                        <Plus size={14} /> <span className="hidden sm:inline">Create deck</span>
                     </button>
 
                     <div className="hidden sm:flex items-center gap-3">
@@ -419,7 +419,7 @@ export default function NotebookDashboard() {
                             </div>
                         ) : (
                             <div className="max-w-3xl mx-auto w-full space-y-8 pb-32">
-                                {/* Notebook Guide - Always at the top */}
+                                {/* Deck Guide - Always at the top */}
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                                     <div className="space-y-2 text-center">
                                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] text-gray-400">
@@ -427,7 +427,7 @@ export default function NotebookDashboard() {
                                             <span>{files.length || 1} sources analyzed</span>
                                         </div>
                                         <h1 className="text-4xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 pb-2">
-                                            {(guide && guide.title) || deckName || "Untitled Notebook"}
+                                            {(guide && guide.title) || deckName || "Untitled Deck"}
                                         </h1>
                                     </div>
 
@@ -439,7 +439,7 @@ export default function NotebookDashboard() {
                                                     {guide ? <Sparkles size={20} /> : <RotateCw size={20} className="animate-spin" />}
                                                 </div>
                                                 <div className="flex-1 space-y-4">
-                                                    <h3 className="text-sm font-medium text-gray-200 uppercase tracking-widest">Notebook Guide</h3>
+                                                    <h3 className="text-sm font-medium text-gray-200 uppercase tracking-widest">Deck Intel</h3>
                                                     {guide ? (
                                                         <div className="prose prose-invert prose-p:text-gray-300 prose-p:leading-relaxed max-w-none">
                                                             {guide.summary}
@@ -740,7 +740,7 @@ export default function NotebookDashboard() {
                                 </button>
                             </div>
                             <p className="text-[10px] text-gray-500 text-center mt-2 font-medium tracking-wide">
-                                NotebookLM can be inaccurate; please double check.
+                                FlashDeck AI can be inaccurate; please double check.
                             </p>
                         </div>
                     </div>
@@ -817,7 +817,7 @@ export default function NotebookDashboard() {
                                                     <h4 className="text-xs font-medium text-gray-200 mb-1">Study Flashcards</h4>
                                                     <p className="text-[10px] text-gray-500 truncate">{cards.length} cards • Ready to review</p>
                                                 </div>
-                                                <button onClick={() => navigate('/notebook/flashcards')} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                <button onClick={() => navigate('/deck/flashcards')} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
                                                     <PlayCircle size={18} />
                                                 </button>
                                             </div>
@@ -848,7 +848,7 @@ export default function NotebookDashboard() {
                                                     <h4 className="text-xs font-medium text-gray-200 mb-1">Interactive Quiz</h4>
                                                     <p className="text-[10px] text-gray-500 truncate">{quiz.length} questions • Ready to test</p>
                                                 </div>
-                                                <button onClick={() => navigate('/notebook/quiz')} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+                                                <button onClick={() => navigate('/deck/quiz')} className="opacity-100 md:opacity-0 group-hover:opacity-100 p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
                                                     <PlayCircle size={18} />
                                                 </button>
                                             </div>

@@ -24,7 +24,7 @@ export default function FeaturesPage() {
         {
             icon: Layout,
             title: "Mind Mapping",
-            description: "Visualize the connections between different topics in your notebook with auto-generated mind maps.",
+            description: "Visualize the connections between different topics in your deck with auto-generated mind maps.",
             color: "text-orange-400"
         }
     ];

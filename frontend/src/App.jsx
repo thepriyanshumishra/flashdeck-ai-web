@@ -3,7 +3,7 @@ import { DeckProvider } from './context/DeckContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Home from './pages/Home';
 import UploadPage from './pages/UploadPage';
-import NotebookDashboard from './pages/NotebookDashboard';
+import DeckDashboard from './pages/DeckDashboard';
 import FlashcardsPage from './pages/FlashcardsPage';
 import QuizPage from './pages/QuizPage';
 import LoginPage from './pages/LoginPage';
@@ -74,17 +74,17 @@ function App() {
                 <UploadPage />
               </ProtectedRoute>
             } />
-            <Route path="/notebook" element={
+            <Route path="/deck" element={
               <ProtectedRoute>
-                <NotebookDashboard />
+                <DeckDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/notebook/flashcards" element={
+            <Route path="/deck/flashcards" element={
               <ProtectedRoute>
                 <FlashcardsPage />
               </ProtectedRoute>
             } />
-            <Route path="/notebook/quiz" element={
+            <Route path="/deck/quiz" element={
               <ProtectedRoute>
                 <QuizPage />
               </ProtectedRoute>

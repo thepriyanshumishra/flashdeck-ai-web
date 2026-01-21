@@ -7,7 +7,7 @@ export default function IntegrationsPage() {
             title: "Data Sources",
             items: [
                 { name: "Google Drive", icon: Share2, status: "Active", desc: "Import PDFs directly from your cloud." },
-                { name: "Notion", icon: Layers, status: "Developing", desc: "Sync your Notion pages as notebooks." },
+                { name: "Notion", icon: Layers, status: "Developing", desc: "Sync your Notion pages as decks." },
                 { name: "GitHub", icon: Github, status: "Active", desc: "Sync markdown documentation files." }
             ]
         },

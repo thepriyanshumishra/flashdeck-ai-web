@@ -21,7 +21,7 @@ export default function UploadSection({
                 <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-medium text-white mb-2">Add sources</h2>
-                        <p className="text-gray-400 text-sm">Upload documents to create your notebook.</p>
+                        <p className="text-gray-400 text-sm">Upload documents to create your deck.</p>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
                         <Upload size={20} className="text-gray-400" />
@@ -149,7 +149,7 @@ export default function UploadSection({
                             >
                                 <span className="flex items-center gap-2">
                                     <Sparkles size={16} />
-                                    Create Notebook
+                                    Create Deck
                                 </span>
                             </Button>
                         </div>

@@ -2,7 +2,7 @@
 
 > **"From PDF to Flashcards, Mind Maps, and Quizzes in Seconds — Powered by Groq AI."**
 
-FlashDeck AI is a full-stack automated learning platform. It mimics the efficiency of **Google's NotebookLM**, analyzing complex documents and intelligently synthesizing them into high-quality study materials using a **LangGraph Multi-Agent Architecture** powered by **Groq**.
+FlashDeck AI is a full-stack automated learning platform. It mimics the efficiency of **Google's DeckLM**, analyzing complex documents and intelligently synthesizing them into high-quality study materials using a **LangGraph Multi-Agent Architecture** powered by **Groq**.
 
 ---
 
@@ -40,7 +40,7 @@ graph TD
 ## 🚀 Key Features
 
 -   **High-Speed AI Interface**: Powered by **Groq** for near-instant generation (250+ tokens/sec).
--   **Personalized Library Dashboard**: Organize your notes with a beautiful, NotebookLM-style library view.
+-   **Personalized Library Dashboard**: Organize your notes with a beautiful, DeckLM-style library view.
 -   **100% Free Public Beta**: All premium features (Pro and Team tiers) are accessible for $0 during our testing phase.
 -   **Interactive Quiz System**: Test yourself with AI-generated MCQs directly inside the platform.
 -   **Targeted Review**: Missed a question? The AI automatically creates focused study cards for those specific weak spots.

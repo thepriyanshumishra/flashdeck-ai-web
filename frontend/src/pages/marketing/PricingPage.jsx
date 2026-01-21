@@ -8,7 +8,7 @@ export default function PricingPage() {
             name: "Free",
             price: "$0",
             description: "Perfect for students getting started.",
-            features: ["5 Notebooks", "Basic AI Generation", "Community Support", "Mobile Web Access"],
+            features: ["5 Decks", "Basic AI Generation", "Community Support", "Mobile Web Access"],
             button: "Get Started",
             variant: "outline"
         },
@@ -16,7 +16,7 @@ export default function PricingPage() {
             name: "Pro",
             price: "$0",
             description: "Everything in Free, plus advanced tools.",
-            features: ["Unlimited Notebooks", "Advanced AI Models", "Priority Support", "PDF Exports", "Custom Templates"],
+            features: ["Unlimited Decks", "Advanced AI Models", "Priority Support", "PDF Exports", "Custom Templates"],
             button: "Go Pro (Free for Beta)",
             variant: "solid",
             popular: true
@@ -25,7 +25,7 @@ export default function PricingPage() {
             name: "Team",
             price: "$0",
             description: "Collaborative study groups.",
-            features: ["Shared Notebooks", "Admin Dashboard", "Team Analytics", "API Access"],
+            features: ["Shared Decks", "Admin Dashboard", "Team Analytics", "API Access"],
             button: "Join as Beta Team",
             variant: "outline"
         }

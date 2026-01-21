@@ -8,7 +8,7 @@ export default function QuizIntroView({ onClose }) {
     const navigate = useNavigate();
 
     const handleStart = () => {
-        navigate('/notebook/quiz');
+        navigate('/deck/quiz');
     };
 
     if (!quiz || quiz.length === 0) {
