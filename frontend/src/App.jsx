@@ -9,6 +9,7 @@ import QuizPage from './pages/QuizPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import MagicLinkHandler from './pages/MagicLinkHandler';
+import LibraryPage from './pages/LibraryPage';
 
 // Marketing Pages
 import FeaturesPage from './pages/marketing/FeaturesPage';
@@ -56,6 +57,11 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/documentation" element={<DocsPage />} />
+            <Route path="/library" element={
+              <ProtectedRoute>
+                <LibraryPage />
+              </ProtectedRoute>
+            } />
 
             {/* Legal Routes */}
             <Route path="/privacy" element={<PrivacyPage />} />

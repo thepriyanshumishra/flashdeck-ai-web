@@ -30,7 +30,7 @@ export default function MagicLinkHandler() {
                     setTimeout(() => {
                         setStatus("success");
                         // Take extra time to show the success message
-                        setTimeout(() => navigate("/notebook"), 3000);
+                        setTimeout(() => navigate("/library"), 3000);
                     }, 1500);
 
                 } catch (err) {

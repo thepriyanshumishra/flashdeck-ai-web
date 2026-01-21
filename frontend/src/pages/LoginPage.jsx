@@ -38,7 +38,7 @@ export default function LoginPage() {
         setError("");
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            setTimeout(() => navigate("/notebook"), 500); // Small perceptual gap
+            setTimeout(() => navigate("/library"), 500); // Small perceptual gap
         } catch (err) {
             setError("Invalid email or password");
             console.error(err);
@@ -75,7 +75,7 @@ export default function LoginPage() {
         setError("");
         try {
             await signInWithPopup(auth, googleProvider);
-            setTimeout(() => navigate("/notebook"), 1000);
+            setTimeout(() => navigate("/library"), 1000);
         } catch (err) {
             setError("Failed to login with Google");
             console.error(err);
@@ -88,7 +88,7 @@ export default function LoginPage() {
         setError("");
         try {
             await signInAnonymously(auth);
-            setTimeout(() => navigate("/notebook"), 1000);
+            setTimeout(() => navigate("/library"), 1000);
         } catch (err) {
             setError("Guest login failed. Please try again.");
             console.error(err);

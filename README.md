@@ -40,6 +40,7 @@ graph TD
 ## 🚀 Key Features
 
 -   **High-Speed AI Interface**: Powered by **Groq** for near-instant generation (250+ tokens/sec).
+-   **Personalized Library Dashboard**: Organize your notes with a beautiful, NotebookLM-style library view.
 -   **100% Free Public Beta**: All premium features (Pro and Team tiers) are accessible for $0 during our testing phase.
 -   **Interactive Quiz System**: Test yourself with AI-generated MCQs directly inside the platform.
 -   **Targeted Review**: Missed a question? The AI automatically creates focused study cards for those specific weak spots.

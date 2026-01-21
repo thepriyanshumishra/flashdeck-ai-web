@@ -54,7 +54,7 @@ export default function Navbar() {
                                 <LogOut size={16} className="mr-2" />
                                 Logout
                             </Button>
-                            <Link to="/notebook">
+                            <Link to="/library">
                                 <Button size="sm" className="bg-white text-black hover:bg-gray-200 border-none rounded-full px-5 transition-all duration-300">
                                     Dashboard
                                 </Button>

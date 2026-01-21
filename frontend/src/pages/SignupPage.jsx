@@ -30,7 +30,7 @@ export default function SignupPage() {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, { displayName: name });
-            setTimeout(() => navigate("/notebook"), 500);
+            setTimeout(() => navigate("/library"), 500);
         } catch (err) {
             if (err.code === 'auth/email-already-in-use') {
                 setError("Email is already registered");
@@ -50,7 +50,7 @@ export default function SignupPage() {
         setError("");
         try {
             await signInWithPopup(auth, googleProvider);
-            setTimeout(() => navigate("/notebook"), 1000);
+            setTimeout(() => navigate("/library"), 1000);
         } catch (err) {
             setError("Failed to sign up with Google");
             console.error(err);
