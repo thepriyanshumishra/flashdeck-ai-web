@@ -22,7 +22,11 @@ import ExpandableMindMap from '../components/ExpandableMindMap';
 import ReportViewer from '../components/ReportViewer';
 import SlideDeckViewer from '../components/SlideDeckViewer';
 import DataTableView from '../components/DataTableView';
+import FlashcardViewer from '../components/FlashcardViewer';
+import QuizIntroView from '../components/QuizIntroView';
 import SavedNotesModal from '../components/SavedNotesModal';
+import FlowchartView from '../components/FlowchartView';
+import GenerationSettingsModal from '../components/GenerationSettingsModal';
 
 export default function NotebookDashboard() {
     const navigate = useNavigate();
@@ -34,6 +38,34 @@ export default function NotebookDashboard() {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const [thinkingStep, setThinkingStep] = useState(0);
+
+    // Settings Modal State
+    const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+    const [settingsTool, setSettingsTool] = useState(null);
+
+    const handleOpenSettings = (toolName, e) => {
+        e.stopPropagation();
+        setSettingsTool(toolName);
+        setSettingsModalOpen(true);
+    };
+
+    const handleGenerateWithSettings = (toolName, options) => {
+        // Map tool name to triggerGeneration type
+        const typeMap = {
+            "Flashcards": "cards",
+            "Quiz": "quiz",
+            "Mind Map": "flowchart",
+            "Slide Deck": "slides",
+            "Reports": "report",
+            "Data Table": "table"
+        };
+
+        const type = typeMap[toolName];
+        if (type) {
+            triggerGeneration(type, options);
+        }
+        setSettingsModalOpen(false);
+    };
 
     const {
         files, setFiles, handleFilesAdded, handleRemoveFile,
@@ -139,13 +171,21 @@ export default function NotebookDashboard() {
         {
             name: "Flashcards", icon: CreditCard, active: true, badge: null,
             onClick: () => {
-                if (cardsStatus !== 'generating') triggerGeneration('cards');
+                if (cardsStatus !== 'generating') {
+                    triggerGeneration('cards');
+                    setActiveTool('Flashcards');
+                    if (window.innerWidth < 768) setMobileTab('content');
+                }
             }
         },
         {
             name: "Quiz", icon: PieChart, active: true, badge: null,
             onClick: () => {
-                if (quizStatus !== 'generating') triggerGeneration('quiz');
+                if (quizStatus !== 'generating') {
+                    triggerGeneration('quiz');
+                    setActiveTool('Quiz');
+                    if (window.innerWidth < 768) setMobileTab('content');
+                }
             }
         },
         {
@@ -366,6 +406,16 @@ export default function NotebookDashboard() {
                                     onRegenerate={() => triggerGeneration('table', null, true)}
                                     onClose={() => setActiveTool(null)}
                                 />
+                            </div>
+                        ) : activeTool === "Flashcards" && cardsStatus === 'completed' ? (
+                            <div className="h-full">
+                                <FlashcardViewer
+                                    onClose={() => setActiveTool(null)}
+                                />
+                            </div>
+                        ) : activeTool === "Quiz" && quizStatus === 'completed' ? (
+                            <div className="h-full">
+                                <QuizIntroView onClose={() => setActiveTool(null)} />
                             </div>
                         ) : (
                             <div className="max-w-3xl mx-auto w-full space-y-8 pb-32">
@@ -738,7 +788,14 @@ export default function NotebookDashboard() {
                                                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${tool.active ? 'bg-indigo-500/10 text-indigo-400' : 'bg-white/5 text-gray-600'}`}>
                                                     <tool.icon size={16} />
                                                 </div>
-                                                {tool.active && <div className="p-1 rounded-full bg-white/5"><MoreHorizontal size={12} className="text-gray-600" /></div>}
+                                                {tool.active && (
+                                                    <button
+                                                        onClick={(e) => handleOpenSettings(tool.name, e)}
+                                                        className="p-1 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                                    >
+                                                        <MoreHorizontal size={14} />
+                                                    </button>
+                                                )}
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className={`text-xs font-semibold ${tool.active ? 'text-gray-200' : 'text-gray-500'}`}>{tool.name}</span>
@@ -1003,6 +1060,13 @@ export default function NotebookDashboard() {
                 onClose={() => setIsSavedNotesModalOpen(false)}
                 notes={savedNotes}
             />
+            {settingsModalOpen && (
+                <GenerationSettingsModal
+                    toolName={settingsTool}
+                    onClose={() => setSettingsModalOpen(false)}
+                    onGenerate={handleGenerateWithSettings}
+                />
+            )}
         </div>
     );
 }

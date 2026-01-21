@@ -177,7 +177,7 @@ export function DeckProvider({ children }) {
         }
     }, [messages, generatedContent, deckName, deckId]);
 
-    const triggerGeneration = useCallback(async (type, extraData = null, force = false) => {
+    const triggerGeneration = useCallback(async (type, options = {}, force = false) => {
         if (!deckId && !generatedContent) {
             console.warn(`Cannot trigger ${type}: missing deckId`);
             return;
@@ -192,7 +192,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/cards`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName, options })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -212,7 +212,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/flowchart`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName, options })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -232,7 +232,7 @@ export function DeckProvider({ children }) {
                 const res = await fetch(`${API_BASE}/generate/quiz`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
+                    body: JSON.stringify({ deck_id: deckId, deck_name: deckName, options })
                 });
                 const data = await res.json();
                 if (data.status === 'success' && data.quiz && data.quiz.length > 0) {
@@ -271,13 +271,24 @@ export function DeckProvider({ children }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ deck_id: deckId, deck_name: deckName })
                 });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    setReport(data.report);
-                    setReportStatus('completed');
-                } else {
-                    setReportStatus('idle');
+
+                if (!res.ok) throw new Error("Report generation failed");
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let accumulatedReport = "";
+
+                setReport(""); // Clear previous report
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    accumulatedReport += chunk;
+                    setReport(prev => prev + chunk);
                 }
+
+                setReportStatus('completed');
             } catch (err) {
                 console.error("Report gen failed:", err);
                 setReportStatus('idle');

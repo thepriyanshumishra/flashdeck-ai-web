@@ -2,7 +2,7 @@ import { Download, FileText, Image as ImageIcon, X } from "lucide-react";
 import Button from "../ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function ExportModal({ isOpen, onClose, downloadPDF, downloadImage, cards }) {
+export default function ExportModal({ isOpen, onClose, downloadPDF, downloadImage, downloadPPTX, cards }) {
     if (!isOpen) return null;
 
     return (
@@ -82,7 +82,27 @@ export default function ExportModal({ isOpen, onClose, downloadPDF, downloadImag
                                 Download
                             </Button>
                         </div>
+
+                        {/* Option 4: PowerPoint */}
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all group">
+                            <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400 group-hover:scale-110 transition-transform">
+                                <Download size={24} />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="text-white font-medium mb-1">PowerPoint (.pptx)</h4>
+                                <p className="text-xs text-gray-500">Structured deck for presentation</p>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => downloadPPTX()}
+                                disabled={cards.length === 0}
+                                className="bg-white/10 hover:bg-white/20 text-white border-none"
+                            >
+                                Download
+                            </Button>
+                        </div>
                     </div>
+
                 </motion.div>
             </div>
         </AnimatePresence>

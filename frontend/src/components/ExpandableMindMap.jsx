@@ -1,25 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-    ChevronRight, ChevronDown, Network,
-    RefreshCw, AlertCircle, ChevronLeft
+    ChevronRight, ChevronLeft, Network,
+    RefreshCw, AlertCircle, FileText,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import ExportMenu from './ExportMenu';
 import html2canvas from 'html2canvas';
+import { saveAs } from 'file-saver';
 
 export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
-    const [nodes, setNodes] = useState([]);
-    const [reconstructedMermaid, setReconstructedMermaid] = useState('');
     const [expandedIds, setExpandedIds] = useState(new Set());
     const containerRef = useRef(null);
 
     // --- ROBUST MERMAID PARSER ---
-    useEffect(() => {
-        if (!data) return;
+    const nodes = useMemo(() => {
+        if (!data || typeof data !== 'string') return [];
 
         const parseMermaid = (mermaidCode) => {
-            if (typeof mermaidCode !== 'string') return [];
-
             // Clean up code
             const lines = mermaidCode
                 .replace(/```mermaid/g, '')
@@ -43,7 +40,7 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
             };
 
             lines.forEach(line => {
-                const edgeRegex = /(\w+)(?:[\[\(\{\>](?:"?)(.*?)(?:"?)[\]\)\}\>])?\s*(?:-+|-->)\s*(\w+)(?:[\[\(\{\>](?:"?)(.*?)(?:"?)[\]\)\}\>])?/;
+                const edgeRegex = /(\w+)(?:[[({>](?:"?)(.*?)(?:"?)[\]})>])?\s*(?:-+|-->)\s*(\w+)(?:[[({>](?:"?)(.*?)(?:"?)[\]})>])?/;
                 const match = line.match(edgeRegex);
 
                 if (match) {
@@ -56,7 +53,7 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
                         hasParent.add(cId);
                     }
                 } else {
-                    const nodeRegex = /(\w+)[\[\(\{\>](?:"?)(.*?)(?:"?)[\]\)\}\>]/;
+                    const nodeRegex = /(\w+)[[({>](?:"?)(.*?)(?:"?)[\]})>]/;
                     const nodeMatch = line.match(nodeRegex);
                     if (nodeMatch) {
                         getOrCreateNode(nodeMatch[1], nodeMatch[2]);
@@ -72,157 +69,58 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
             return roots;
         };
 
-        const generateMermaidFromNodes = (rootNodes) => {
-            if (!rootNodes || rootNodes.length === 0) return '';
-
-            // 1. Collect all unique nodes to ensure clean definitions
-            // This 2-pass approach strictly follows Mermaid syntax requirements
-            // preventing 'Syntax Conflict' by separating definitions from edges.
-            const allNodes = new Map(); // id -> { safeId, safeLabel }
-            const edges = []; // { from, to }
-            const definedIds = new Set();
-            let idCounter = 0;
-
-            const processNode = (node) => {
-                // Ensure unique processing per ID to avoid cycles/duplicates in definition
-                if (!definedIds.has(node.id)) {
-                    definedIds.add(node.id);
-
-                    // Sanitize ID: Ensure simple alphanumeric ID for Mermaid
-                    const safeId = `node_${idCounter++}`;
-
-                    // Sanitize Label: Extensive cleaning for stability
-                    let label = node.label || node.id;
-                    if (typeof label !== 'string') label = String(label);
-
-                    label = label
-                        .replace(/"/g, "'")             // Quotes to single
-                        .replace(/`/g, "'")             // Backticks
-                        .replace(/[\[\]\(\)\{\}]/g, '') // Brackets (remove to be safe)
-                        .replace(/<[^>]*>/g, '')        // HTML tags
-                        .replace(/\n/g, ' ')            // Newlines
-                        .replace(/\\/g, '/')            // Backslashes
-                        .trim();
-
-                    // Truncate quite aggressively to prevent overflow
-                    if (label.length > 50) label = label.substring(0, 47) + '...';
-                    if (!label) label = node.id;
-
-                    allNodes.set(node.id, { safeId, safeLabel: label });
-                }
-
-                if (node.children) {
-                    node.children.forEach(child => {
-                        edges.push({ from: node.id, to: child.id });
-                        processNode(child);
-                    });
-                }
-            };
-
-            rootNodes.forEach(processNode);
-
-            // 2. Build Strict Mermaid String
-            let mermaidStr = 'graph TD\n';
-
-            // A. Definitions
-            for (const [originalId, info] of allNodes.entries()) {
-                mermaidStr += `    ${info.safeId}["${info.safeLabel}"]\n`;
-            }
-
-            // B. Connections (using only IDs)
-            mermaidStr += '\n';
-            for (const edge of edges) {
-                const from = allNodes.get(edge.from);
-                const to = allNodes.get(edge.to);
-                if (from && to) {
-                    mermaidStr += `    ${from.safeId} --> ${to.safeId}\n`;
-                }
-            }
-
-            // Use slightly rounded rectangles and dark theme colors
-            mermaidStr += '    classDef default fill:#1a1a1a,stroke:#6366f1,stroke-width:1px,color:#fff,rx:5px,ry:5px;\n';
-            return mermaidStr;
-        };
-
-        const parsedNodes = parseMermaid(data);
-        setNodes(parsedNodes);
-
-        // RECONSTRUCT CLEAN MERMAID FROM THE PARSED TREE
-        const cleanMermaid = generateMermaidFromNodes(parsedNodes);
-        setReconstructedMermaid(cleanMermaid);
-
-        if (parsedNodes.length > 0) {
-            const initialExpanded = new Set();
-            parsedNodes.forEach(rn => initialExpanded.add(rn.id));
-            setExpandedIds(initialExpanded);
-        }
+        return parseMermaid(data);
     }, [data]);
 
-    // --- INTERACTIVE CONTROLS ---
-    const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 2));
-    const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.5));
-    const handleReset = () => {
-        setScale(1);
-        setPosition({ x: 0, y: 0 });
+    useEffect(() => {
+        if (nodes.length > 0) {
+            const initialExpanded = new Set();
+            nodes.forEach(rn => initialExpanded.add(rn.id));
+            // Wrap in setTimeout to avoid 'setState synchronously within effect' lint/warning
+            // This ensures it runs after the current render cycle completes
+            setTimeout(() => setExpandedIds(initialExpanded), 0);
+        }
+    }, [nodes]);
+
+    const handleExportText = () => {
+        let textContent = "MIND MAP EXPORT\n\n";
+
+        const renderNodeText = (node, depth = 0) => {
+            const indent = "  ".repeat(depth);
+            textContent += `${indent}- ${node.label}\n`;
+            if (node.children) {
+                node.children.forEach(c => renderNodeText(c, depth + 1));
+            }
+        };
+
+        nodes.forEach(n => renderNodeText(n));
+
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+        saveAs(blob, `MindMap_${Date.now()}.txt`);
     };
 
-    const handleMouseDown = (e) => {
-        if (viewMode === 'tree') return;
-        if (e.target.closest('button') || e.target.closest('.node-box')) return;
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    };
+    const handleExport = (format) => {
+        if (format === 'txt') {
+            handleExportText();
+            return;
+        }
 
-    const handleMouseMove = (e) => {
-        if (!isDragging) return;
-        setPosition({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y
-        });
-    };
+        if (!containerRef.current) return;
 
-    const handleMouseUp = () => setIsDragging(false);
+        if (format === 'png') {
+            html2canvas(containerRef.current, { backgroundColor: '#050505' }).then(canvas => {
+                canvas.toBlob((blob) => {
+                    saveAs(blob, `MindMap_${Date.now()}.png`);
+                });
+            });
+        }
+    };
 
     const toggleExpand = (id) => {
         const next = new Set(expandedIds);
         if (next.has(id)) next.delete(id);
         else next.add(id);
         setExpandedIds(next);
-    };
-
-    const handleExport = (format) => {
-        if (!containerRef.current) return;
-
-        // If in tree mode, export the whole tree container
-        // If in graph mode, we might want to target the SVG directly or the container
-        const target = viewMode === 'graph'
-            ? containerRef.current.querySelector('svg') || containerRef.current
-            : containerRef.current;
-
-        if (format === 'png') {
-            html2canvas(target).then(canvas => {
-                const a = document.createElement('a');
-                a.href = canvas.toDataURL('image/png');
-                a.download = `mindmap-${Date.now()}.png`;
-                a.click();
-            });
-        } else if (format === 'svg') {
-            // Only works well if we have an actual SVG element
-            const svgElement = containerRef.current.querySelector('svg');
-            if (svgElement && viewMode === 'graph') {
-                const svgData = new XMLSerializer().serializeToString(svgElement);
-                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `mindmap-${Date.now()}.svg`;
-                a.click();
-                URL.revokeObjectURL(url);
-            } else {
-                // Fallback to png for tree view or if no svg found
-                handleExport('png');
-            }
-        }
     };
 
     const renderNode = (node, depth = 0) => {
@@ -243,10 +141,10 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
                             <button
                                 onClick={() => toggleExpand(node.id)}
                                 className={`
-                                    w-5 h-5 rounded flex items-center justify-center 
-                                    transition-all duration-300 z-10 relative
-                                    ${isExpanded ? 'bg-indigo-500/20 text-indigo-400 rotate-90' : 'bg-white/5 text-gray-500 hover:text-white'}
-                                `}
+                                        w-5 h-5 rounded flex items-center justify-center 
+                                        transition-all duration-300 z-10 relative
+                                        ${isExpanded ? 'bg-indigo-500/20 text-indigo-400 rotate-90' : 'bg-white/5 text-gray-500 hover:text-white'}
+                                    `}
                             >
                                 <ChevronRight size={12} />
                             </button>
@@ -295,7 +193,7 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
     };
 
     return (
-        <div className="h-full flex flex-col bg-[#050505] rounded-3xl border border-white/5 overflow-hidden shadow-2xl relative">
+        <div ref={containerRef} className="h-full flex flex-col bg-[#050505] rounded-3xl border border-white/5 overflow-hidden shadow-2xl relative">
             {/* Header / Toolbar */}
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-[#080808] z-30">
                 <div className="flex items-center gap-4">
@@ -320,7 +218,13 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
                 <div className="flex items-center gap-2">
                     {/* Action Controls */}
                     <div className="flex items-center gap-1 bg-[#111] p-1.5 rounded-2xl border border-white/5">
-                        <ExportMenu onExport={handleExport} type="mindmap" />
+                        <ExportMenu
+                            type="mindmap"
+                            options={[
+                                { label: 'Text Outline (.txt)', format: 'txt', icon: FileText }
+                            ]}
+                            onExport={handleExport}
+                        />
                         {onRegenerate && (
                             <button
                                 onClick={onRegenerate}
@@ -335,7 +239,7 @@ export default function ExpandableMindMap({ data, onClose, onRegenerate }) {
             </div>
 
             {/* Content Area */}
-            <div className="p-10 max-w-4xl mx-auto">
+            <div className="flex-1 overflow-auto custom-scrollbar p-10 max-w-4xl mx-auto w-full">
                 {nodes.length > 0 ? (
                     <div className="-ml-8">
                         {nodes.map(node => renderNode(node))}

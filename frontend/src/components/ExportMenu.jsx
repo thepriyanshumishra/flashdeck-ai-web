@@ -27,7 +27,8 @@ export default function ExportMenu({ onExport, type }) {
             { label: 'HTML File (.html)', format: 'html', icon: FileText },
         ],
         'table': [
-            { label: 'CSV (.csv)', format: 'csv', icon: TableIcon },
+            { label: 'Excel (.csv)', format: 'csv', icon: TableIcon },
+            { label: 'PDF Document (.pdf)', format: 'pdf', icon: FileText },
             { label: 'JSON Data (.json)', format: 'json', icon: FileText },
         ]
     };

@@ -34,8 +34,14 @@ def stream_report(text: str):
             print(f"Native Stream Error: {e}")
 
     # 2. LangChain/OpenRouter Stream
+    # 2. LangChain/OpenRouter Stream
     if llm:
-        prompt = ChatPromptTemplate.from_messages([("system", system_instruction), ("user", "TEXT: {text}")])
+        from langchain_core.messages import SystemMessage
+        messages = [
+            SystemMessage(content=system_instruction),
+            ("user", "TEXT: {text}")
+        ]
+        prompt = ChatPromptTemplate.from_messages(messages)
         chain = prompt | llm
         
         # Stream the output

@@ -1,91 +1,85 @@
 import { motion } from "framer-motion";
-import { Sparkles, FileText, Zap } from "lucide-react";
+import { Sparkles, Play } from "lucide-react";
 import Button from "../ui/Button";
 import { useNavigate } from "react-router-dom";
-
-function FloatingCard({ className, icon: Icon, title, delay = 0 }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: [0, -10, 0] }}
-            transition={{
-                y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: delay },
-                opacity: { duration: 0.8, delay: delay }
-            }}
-            className={`absolute hidden lg:flex items-center gap-3 p-4 rounded-2xl glass-panel ${className}`}
-        >
-            <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                <Icon className="text-white/80" size={20} />
-            </div>
-            <div>
-                <div className="h-2 w-16 bg-white/20 rounded-full mb-1.5" />
-                <div className="h-2 w-10 bg-white/10 rounded-full" />
-            </div>
-        </motion.div>
-    );
-}
+import BentoFeatures from "./BentoFeatures";
 
 export default function HeroSection() {
     const navigate = useNavigate();
 
     return (
-        <section className="relative pt-32 pb-40 px-6 overflow-hidden">
+        <section className="relative pt-32 pb-20 md:pt-48 md:pb-10 px-6 overflow-hidden max-w-7xl mx-auto">
 
-            {/* Background Elements */}
-            <div className="absolute inset-0 aurora-bg -z-10 opacity-60" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] -z-10" />
+            {/* Background Effects */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
+                <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] mix-blend-screen" />
+                <div className="absolute top-[10%] right-[20%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] mix-blend-screen" />
+            </div>
 
-            <div className="mx-auto max-w-5xl relative z-10 text-center">
+            <div className="text-center relative z-10 max-w-4xl mx-auto space-y-8">
 
-                {/* Floating Decor Cards */}
-                <FloatingCard
-                    icon={FileText}
-                    className="top-0 left-10 -rotate-6"
-                    delay={0}
-                />
-                <FloatingCard
-                    icon={Zap}
-                    className="bottom-20 right-10 rotate-3"
-                    delay={1.5}
-                />
-
+                {/* Badge */}
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="space-y-8"
+                    transition={{ duration: 0.5 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs md:text-sm font-medium text-purple-300 backdrop-blur-md mx-auto hover:bg-purple-500/20 transition-colors cursor-default"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-white/80 backdrop-blur-md">
-                        <Sparkles size={14} className="text-yellow-400" />
-                        <span>AI-Powered Study Assistant</span>
-                    </div>
+                    <span className="flex h-2 w-2 rounded-full bg-purple-500 animate-pulse"></span>
+                    <span>100% Free During Beta</span>
+                </motion.div>
 
-                    <h1 className="text-6xl md:text-8xl font-bold tracking-tight text-white leading-[0.9]">
-                        Turn Chaos <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600">
-                            Into Knowledge.
-                        </span>
-                    </h1>
+                {/* Headline */}
+                <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white leading-[1.1] md:leading-[1.1]"
+                >
+                    Turn Chaos Into <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/50">
+                        Structured Knowledge.
+                    </span>
+                </motion.h1>
 
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed font-light">
-                        Upload your messy lecture slides, sprawling PDFs, or raw notes.
-                        We'll convert them into perfectly organized spaced-repetition flashcards in seconds.
-                    </p>
+                {/* Subheadline */}
+                <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed"
+                >
+                    Upload your raw lecture notes, PDFs, or slides. FlashDeck's AI instantly converts them into spaced-repetition flashcards, mind maps, and interactive quizzes.
+                </motion.p>
 
-                    <div className="flex items-center justify-center gap-4 pt-4">
-                        <Button
-                            onClick={() => navigate('/upload')}
-                            size="lg"
-                            className="rounded-full px-8 text-lg h-14 bg-white text-black hover:bg-white/90 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] border-none"
-                        >
-                            Start Learning Now
-                        </Button>
-                        <Button size="lg" variant="outline" className="rounded-full px-8 text-lg h-14 backdrop-blur-md border-white/10 hover:bg-white/5">
-                            About Us
-                        </Button>
-                    </div>
+                {/* CTA Buttons */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+                >
+                    <Button
+                        onClick={() => navigate('/upload')}
+                        size="lg"
+                        className="rounded-full px-8 h-12 md:h-14 text-base md:text-lg bg-white text-black hover:bg-gray-200 border-none w-full sm:w-auto flex items-center gap-2"
+                    >
+                        <Sparkles size={18} />
+                        Start Learning Free
+                    </Button>
+                    <Button
+                        size="lg"
+                        variant="outline"
+                        className="rounded-full px-8 h-12 md:h-14 text-base md:text-lg backdrop-blur-md bg-white/5 border-white/10 hover:bg-white/10 text-white w-full sm:w-auto flex items-center gap-2"
+                    >
+                        <Play size={18} fill="currentColor" />
+                        Watch Demo
+                    </Button>
                 </motion.div>
             </div>
+
+            {/* Bento Grid Features */}
+            <BentoFeatures />
         </section>
     );
 }

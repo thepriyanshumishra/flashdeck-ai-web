@@ -86,6 +86,7 @@ async def generate_initial(files: List[UploadFile] = File(...)):
 class TaskRequest(BaseModel):
     deck_id: str
     deck_name: str
+    options: Dict = {}
     
 def get_text_or_404(deck_id: str):
     text = DECK_STORE.get(deck_id)
@@ -127,7 +128,7 @@ async def generate_cards(req: TaskRequest):
     print(f"--- Triggering Lazy Card Generation for: {req.deck_name} ---")
     text = get_text_or_404(req.deck_id)
     try:
-        result = await get_cached_or_run(req.deck_id, "cards", text)
+        result = await get_cached_or_run(req.deck_id, "cards", text, extra_data={"options": req.options})
         await ensure_min_time(start_time, 3.5)
         cards = result.get("final_cards", [])
         
@@ -149,7 +150,7 @@ async def generate_flowchart(req: TaskRequest):
     print(f"--- Triggering Lazy Flowchart Generation for: {req.deck_name} ---")
     text = get_text_or_404(req.deck_id)
     try:
-        result = await get_cached_or_run(req.deck_id, "flowchart", text)
+        result = await get_cached_or_run(req.deck_id, "flowchart", text, extra_data={"options": req.options})
         await ensure_min_time(start_time, 3.0)
         return {
             "status": "success",
@@ -165,7 +166,7 @@ async def generate_quiz(req: TaskRequest):
     print(f"--- Triggering Lazy Quiz Generation for: {req.deck_name} ---")
     text = get_text_or_404(req.deck_id)
     try:
-        result = await get_cached_or_run(req.deck_id, "quiz", text)
+        result = await get_cached_or_run(req.deck_id, "quiz", text, extra_data={"options": req.options})
         await ensure_min_time(start_time, 3.0)
         return {
             "status": "success",
@@ -226,7 +227,7 @@ async def generate_slides(req: TaskRequest):
     print(f"--- Triggering Lazy Slides Generation for: {req.deck_name} ---")
     text = get_text_or_404(req.deck_id)
     try:
-        result = await get_cached_or_run(req.deck_id, "slides", text)
+        result = await get_cached_or_run(req.deck_id, "slides", text, extra_data={"options": req.options})
         await ensure_min_time(start_time, 3.0)
         return {
             "status": "success",
@@ -242,7 +243,7 @@ async def generate_table(req: TaskRequest):
     print(f"--- Triggering Lazy Table Generation for: {req.deck_name} ---")
     text = get_text_or_404(req.deck_id)
     try:
-        result = await get_cached_or_run(req.deck_id, "table", text)
+        result = await get_cached_or_run(req.deck_id, "table", text, extra_data={"options": req.options})
         await ensure_min_time(start_time, 3.0)
         return {
             "status": "success",
