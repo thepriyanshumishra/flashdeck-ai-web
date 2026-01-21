@@ -25,6 +25,7 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
     const { user, loading: authLoading } = useAuth();
+    const navigate = useNavigate();
     const [view, setView] = useState("password"); // password, magic
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
