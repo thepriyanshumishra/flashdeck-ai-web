@@ -54,7 +54,7 @@ export default function FlashcardsPage() {
         const margin = 15;
         const cardWidth = 180;
 
-        cards.forEach((card, idx) => {
+        cards.forEach((card) => {
             // Check if we need a new page
             if (yPos > 240) {
                 doc.addPage();
@@ -220,8 +220,8 @@ export default function FlashcardsPage() {
             link.download = `FlashDeck-Pro-${deckName || 'Cards'}.${format}`;
             link.href = canvas.toDataURL(`image/${format === 'jpg' ? 'jpeg' : 'png'}`);
             link.click();
-        } catch (e) {
-            console.error(e);
+        } catch (err) {
+            console.error(err);
             alert("Export failed");
         }
     }

@@ -1,11 +1,23 @@
 import React, { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import { Presentation, ChevronRight, ChevronLeft, Maximize2, MonitorPlay, RotateCw, X } from 'lucide-react';
 import AutoScale from './AutoScale';
 import ExportMenu from './ExportMenu';
 import PptxGenJS from 'pptxgenjs';
 
 export default function SlideDeckViewer({ data, onRegenerate, onClose }) {
+    const { isDark } = useTheme();
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Handle Esc key
+    React.useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     if (!data || !data.length) {
         return (
@@ -27,8 +39,6 @@ export default function SlideDeckViewer({ data, onRegenerate, onClose }) {
     const nextSlide = () => setCurrentSlide(curr => (curr + 1) % data.length);
     const prevSlide = () => setCurrentSlide(curr => (curr - 1 + data.length) % data.length);
 
-    const [isFullscreen, setIsFullscreen] = useState(false);
-
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch((e) => {
@@ -42,15 +52,6 @@ export default function SlideDeckViewer({ data, onRegenerate, onClose }) {
             setIsFullscreen(false);
         }
     };
-
-    // Handle Esc key
-    React.useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, []);
 
     const slide = data[currentSlide] || { title: "Error", content: "Slide data missing", type: "text" };
 
@@ -125,24 +126,24 @@ export default function SlideDeckViewer({ data, onRegenerate, onClose }) {
     };
 
     return (
-        <div className={`flex flex-col bg-[#0a0a0a] overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50 w-screen h-screen rounded-none' : 'h-full rounded-[32px] border border-white/5 shadow-2xl'}`}>
+        <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isDark ? 'bg-[#0a0a0a]' : 'bg-white'} ${isFullscreen ? 'fixed inset-0 z-50 w-screen h-screen rounded-none' : 'h-full rounded-[32px] border shadow-2xl ${isDark ? "border-white/5" : "border-gray-200"}'}`}>
             {/* Header */}
-            <div className={`flex items-center justify-between px-8 py-5 bg-[#0d0d0d]/80 backdrop-blur-md border-b border-white/5 ${isFullscreen ? 'fixed top-0 left-0 right-0 z-20' : ''}`}>
+            <div className={`flex items-center justify-between px-8 py-5 backdrop-blur-md border-b ${isDark ? 'bg-[#0d0d0d]/80 border-white/5' : 'bg-white/80 border-gray-100'} ${isFullscreen ? 'fixed top-0 left-0 right-0 z-20' : ''}`}>
                 <div className="flex items-center gap-4">
                     {onClose && !isFullscreen && (
                         <button
                             onClick={onClose}
-                            className="mr-2 p-2 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all transform hover:scale-110"
+                            className={`mr-2 p-2 rounded-xl transition-all transform hover:scale-110 ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
                         >
                             <ChevronLeft size={20} />
                         </button>
                     )}
-                    <div className="w-10 h-10 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/10">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${isDark ? 'bg-orange-500/10 text-orange-400 border-orange-500/10' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
                         <Presentation size={20} />
                     </div>
                     <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] block leading-none mb-1">Interactive Studio</span>
-                        <span className="text-sm font-bold text-white font-heading tracking-tight">Slide {currentSlide + 1} of {data.length}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.2em] block leading-none mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Interactive Studio</span>
+                        <span className={`text-sm font-bold font-heading tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Slide {currentSlide + 1} of {data.length}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -151,7 +152,7 @@ export default function SlideDeckViewer({ data, onRegenerate, onClose }) {
                     {onRegenerate && (
                         <button
                             onClick={onRegenerate}
-                            className="w-10 h-10 flex items-center justify-center hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
+                            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all border ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-white border-white/5' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900 border-gray-200'}`}
                             title="Regenerate"
                         >
                             <RotateCw size={16} />
@@ -168,82 +169,95 @@ export default function SlideDeckViewer({ data, onRegenerate, onClose }) {
             </div>
 
             {/* Slide Area */}
-            <div className={`flex-1 relative flex items-center justify-center bg-[#070707] p-6 md:p-12 overflow-hidden ${isFullscreen ? 'pt-24' : ''}`}>
+            <div className={`flex-1 relative bg-[#070707] flex items-center justify-center p-4 md:p-8 ${isFullscreen ? 'pt-20' : ''}`}>
+                {/* Fixed Aspect Ratio Container */}
                 <div
-                    key={currentSlide}
-                    className="w-full max-w-5xl aspect-video bg-[#0d0d0d] bg-dots rounded-[40px] border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)] p-8 md:p-16 flex flex-col relative overflow-hidden group"
+                    className="relative shadow-[0_30px_90px_rgba(0,0,0,0.8)] rounded-2xl md:rounded-[40px] overflow-hidden border border-white/10 group transition-all duration-500"
+                    style={{
+                        width: '100%',
+                        maxWidth: 'calc(min(100%, (100vh - 200px) * 16 / 9))',
+                        aspectRatio: '16 / 9',
+                    }}
                 >
-                    {/* Premium Accents */}
-                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-orange-600/5 blur-[120px] rounded-full pointer-events-none group-hover:bg-orange-600/10 transition-all duration-1000" />
-                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none group-hover:bg-indigo-600/10 transition-all duration-1000" />
+                    <div
+                        key={currentSlide}
+                        className="w-full h-full bg-[#0d0d0d] flex flex-col relative overflow-hidden p-[6%]"
+                    >
+                        {/* High-End Background Design */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#111] via-[#0d0d0d] to-[#0a0a0a]" />
+                        <div className="absolute top-0 right-0 w-[60%] h-[60%] bg-orange-600/5 blur-[120px] rounded-full pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-[60%] h-[60%] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
 
-                    {/* Top Accent Line */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
+                        {/* Decorative Patterns */}
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.5) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
-                    {/* Scaleable Content Area */}
-                    <div className="flex-1 w-full min-h-0 relative z-10 mb-8 flex flex-col justify-center text-center">
-                        <AutoScale>
-                            {slide.type === 'title' ? (
-                                <div className="space-y-10 w-full">
-                                    <div className="inline-block px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500 text-xs font-bold uppercase tracking-widest mb-4">
-                                        Presentation Guide
+                        {/* Slide Content with AutoScale */}
+                        <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
+                            <AutoScale>
+                                {slide.type === 'title' ? (
+                                    <div className="w-full text-center py-8">
+                                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500 text-[10px] font-black uppercase tracking-[0.2em] mb-12">
+                                            <Sparkles size={12} />
+                                            Module Overview
+                                        </div>
+                                        <h1 className="text-8xl font-black text-white tracking-tighter leading-[1.1] mb-12 drop-shadow-2xl">
+                                            {slide.title || "Untitled Slide"}
+                                        </h1>
+                                        <div className="w-32 h-1.5 bg-gradient-to-r from-orange-600 to-orange-400 mx-auto rounded-full shadow-[0_0_20px_rgba(249,115,22,0.4)] mb-12" />
+                                        <p className="text-3xl text-gray-400 max-w-4xl mx-auto leading-relaxed font-medium">
+                                            {slide.content || ""}
+                                        </p>
                                     </div>
-                                    <h1 className="text-7xl md:text-8xl font-black text-white tracking-tighter leading-[1] font-heading">
-                                        {slide.title || "Untitled Slide"}
-                                    </h1>
-                                    <div className="w-24 h-1 bg-orange-500 mx-auto my-8 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.5)]" />
-                                    <p className="text-3xl text-gray-400 max-w-4xl mx-auto leading-relaxed font-light">
-                                        {slide.content || ""}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="space-y-12 w-full text-left">
-                                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
-                                        <h2 className="text-6xl font-bold text-white tracking-tight font-heading leading-tight">
-                                            {slide.title || "No Title"}
-                                        </h2>
-                                        <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold text-gray-500 uppercase tracking-widest hidden md:block">
-                                            Insight Summary
+                                ) : (
+                                    <div className="w-full h-full flex flex-col text-left py-4">
+                                        <div className="flex items-center justify-between gap-8 mb-16 border-b border-white/10 pb-10">
+                                            <h2 className="text-6xl font-black text-white tracking-tight leading-tight flex-1">
+                                                {slide.title || "No Title"}
+                                            </h2>
+                                            <div className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[12px] font-black text-orange-500 uppercase tracking-[0.2em] shadow-inner">
+                                                Key Insight
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 w-full">
+                                            {(slide.type === 'bullet' || Array.isArray(slide.content)) ? (
+                                                <div className="grid grid-cols-1 gap-y-10">
+                                                    {(Array.isArray(slide.content) ? slide.content : (slide.content || "").split('\n'))
+                                                        .filter(l => l && typeof l === 'string' && l.trim())
+                                                        .map((line, i) => (
+                                                            <div key={i} className="flex items-start gap-8 group/item">
+                                                                <div className="w-4 h-4 rounded-full bg-orange-500 mt-4 shadow-[0_0_15px_rgba(249,115,22,0.5)] flex-shrink-0" />
+                                                                <span className="text-[2.8rem] text-white/90 leading-[1.3] font-medium tracking-tight">
+                                                                    {line.replace(/^- /, '')}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                            ) : (
+                                                <div className="bg-white/[0.03] p-12 rounded-[40px] border border-white/5 shadow-2xl backdrop-blur-sm">
+                                                    <p className="text-[2.6rem] text-gray-300 whitespace-pre-line leading-[1.5] font-medium">
+                                                        {typeof slide.content === 'string' ? slide.content : JSON.stringify(slide.content)}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-
-                                    <div className="text-[2.6rem] text-indigo-100/90 leading-[1.3] font-handwriting tracking-wide">
-                                        {(slide.type === 'bullet' || Array.isArray(slide.content)) ? (
-                                            <ul className="space-y-8">
-                                                {(Array.isArray(slide.content) ? slide.content : (slide.content || "").split('\n'))
-                                                    .filter(l => l && typeof l === 'string' && l.trim())
-                                                    .map((line, i) => (
-                                                        <li key={i} className="flex items-start gap-6 group/item">
-                                                            <span className="w-3 h-3 rounded-full bg-orange-500 mt-5 group-hover/item:scale-150 transition-transform shadow-[0_0_10px_rgba(249,115,22,0.5)] flex-shrink-0" />
-                                                            <span className="flex-1">{line.replace(/^- /, '')}</span>
-                                                        </li>
-                                                    ))}
-                                            </ul>
-                                        ) : (
-                                            <p className="whitespace-pre-line leading-[1.6] bg-white/5 p-10 rounded-[32px] border border-white/5 shadow-inner">
-                                                {typeof slide.content === 'string' ? slide.content : JSON.stringify(slide.content)}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </AutoScale>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex-none flex justify-between items-end border-t border-white/5 pt-6 mt-auto">
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                            <div className="text-[10px] font-bold text-gray-600 uppercase tracking-[0.3em] font-heading">
-                                FlashDeck AI Pro
-                            </div>
+                                )}
+                            </AutoScale>
                         </div>
-                        <div className="text-[10px] font-bold text-gray-600 font-mono bg-white/5 px-3 py-1 rounded-lg">
-                            {String(currentSlide + 1).padStart(2, '0')} / {String(data.length).padStart(2, '0')}
+
+                        {/* Slide Footer */}
+                        <div className="relative z-10 flex items-center justify-between mt-auto pt-8 border-t border-white/10">
+                            <div className="flex items-center gap-4 text-gray-500">
+                                <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
+                                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40">FlashDeck AI Pro</span>
+                            </div>
+                            <div className="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-[14px] font-black text-white/60 font-mono tracking-widest">
+                                {String(currentSlide + 1).padStart(2, '0')} <span className="text-white/20 mx-1">/</span> {String(data.length).padStart(2, '0')}
+                            </div>
                         </div>
                     </div>
                 </div>
-
                 {/* Controls */}
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-30">
                     <button

@@ -4,7 +4,8 @@ import {
     onAuthStateChanged,
     signInAnonymously,
     sendSignInLinkToEmail,
-    signInWithEmailLink
+    signInWithEmailLink,
+    signOut
 } from "../lib/firebase";
 
 const AuthContext = createContext({});
@@ -36,13 +37,18 @@ export const AuthProvider = ({ children }) => {
         return signInWithEmailLink(auth, email, link);
     };
 
+    const logout = () => {
+        return signOut(auth);
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
             loading,
             loginAnonymously,
             sendPasswordlessLink,
-            loginWithEmailLink
+            loginWithEmailLink,
+            logout
         }}>
             {!loading && children}
         </AuthContext.Provider>

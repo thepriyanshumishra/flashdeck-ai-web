@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import { useDeck } from '../context/DeckContext';
 import { Download, RotateCw, Sparkles, Image as ImageIcon, FileText, Presentation, FileType, ArrowLeft } from 'lucide-react';
 import ReviewSection from './sections/ReviewSection';
@@ -7,6 +8,7 @@ import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 
 export default function FlashcardViewer({ onClose }) {
+    const { isDark } = useTheme();
     const { cards, deckName, deckId, triggerGeneration } = useDeck();
     const [selectedCard, setSelectedCard] = useState(null);
     const cardsRef = useRef(null);
@@ -219,27 +221,27 @@ export default function FlashcardViewer({ onClose }) {
     if (!cards) return null;
 
     return (
-        <div className="h-full flex flex-col bg-[#0a0a0a] rounded-[32px] border border-white/5 overflow-hidden shadow-2xl relative">
-            <div className="absolute inset-0 bg-dots opacity-[0.2] pointer-events-none" />
+        <div className={`h-full flex flex-col rounded-[32px] border overflow-hidden shadow-2xl relative transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`absolute inset-0 bg-dots pointer-events-none ${isDark ? 'opacity-[0.2]' : 'opacity-[0.05]'}`} />
 
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-6 bg-[#0d0d0d]/80 backdrop-blur-md border-b border-white/5 z-10">
+            <div className={`flex items-center justify-between px-8 py-6 backdrop-blur-md border-b z-10 ${isDark ? 'bg-[#0d0d0d]/80 border-white/5' : 'bg-white/80 border-gray-100'}`}>
                 <div className="flex items-center gap-4">
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                            className={`p-2 rounded-xl transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
                             title="Back to Chat"
                         >
                             <ArrowLeft size={20} />
                         </button>
                     )}
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shadow-inner">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-inner ${isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/10' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
                         <Sparkles size={24} />
                     </div>
                     <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] block leading-none mb-1">Knowledge Bank</span>
-                        <h2 className="text-lg font-bold text-white font-heading tracking-tight">Flashcards</h2>
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.3em] block leading-none mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Knowledge Bank</span>
+                        <h2 className={`text-lg font-bold font-heading tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Flashcards</h2>
                     </div>
                 </div>
 
@@ -247,7 +249,7 @@ export default function FlashcardViewer({ onClose }) {
                     <ExportMenu type="custom" options={exportOptions} onExport={handleExport} />
                     <button
                         onClick={handleRegenerate}
-                        className="w-10 h-10 flex items-center justify-center hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
+                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all border ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-white border-white/5' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900 border-gray-200'}`}
                         title="Regenerate Deck"
                     >
                         <RotateCw size={18} />

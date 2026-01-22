@@ -1,11 +1,13 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useTheme } from '../context/ThemeContext';
 import { FileText, Download, Copy, Check, RotateCw, X, ChevronLeft } from 'lucide-react';
 import ExportMenu from './ExportMenu';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 export default function ReportViewer({ markdown, onRegenerate, onClose }) {
+    const { isDark } = useTheme();
     const reportRef = React.useRef(null);
     const [copied, setCopied] = React.useState(false);
 
@@ -86,24 +88,24 @@ export default function ReportViewer({ markdown, onRegenerate, onClose }) {
     };
 
     return (
-        <div className="h-full flex flex-col bg-[#0a0a0a] rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+        <div className={`h-full flex flex-col rounded-[40px] border overflow-hidden shadow-2xl transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-gray-200'}`}>
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-6 bg-[#0d0d0d]/80 backdrop-blur-md border-b border-white/5">
+            <div className={`flex items-center justify-between px-8 py-6 backdrop-blur-md border-b ${isDark ? 'bg-[#0d0d0d]/80 border-white/5' : 'bg-white/80 border-gray-100'}`}>
                 <div className="flex items-center gap-4">
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="mr-2 p-2 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all transform hover:scale-110"
+                            className={`mr-2 p-2 rounded-xl transition-all transform hover:scale-110 ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
                         >
                             <ChevronLeft size={20} />
                         </button>
                     )}
-                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10 shadow-inner">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-inner ${isDark ? 'bg-blue-500/10 text-blue-400 border-blue-500/10' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
                         <FileText size={24} />
                     </div>
                     <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] block leading-none mb-1">Advanced Synthesis</span>
-                        <span className="text-lg font-bold text-white font-heading tracking-tight">Intelligence Report</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.3em] block leading-none mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Advanced Synthesis</span>
+                        <span className={`text-lg font-bold font-heading tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Intelligence Report</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -136,7 +138,7 @@ export default function ReportViewer({ markdown, onRegenerate, onClose }) {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-10 md:p-16 bg-dots">
-                <div id="report-content" className="prose prose-invert prose-lg max-w-4xl mx-auto font-heading leading-relaxed">
+                <div id="report-content" className={`prose prose-lg max-w-4xl mx-auto font-heading leading-relaxed ${isDark ? 'prose-invert' : 'prose-slate'}`}>
                     <ReactMarkdown>{markdown}</ReactMarkdown>
                 </div>
 

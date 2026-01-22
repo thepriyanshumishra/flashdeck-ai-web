@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { DeckProvider } from './context/DeckContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { HelmetProvider } from 'react-helmet-async';
 import Home from './pages/Home';
 import UploadPage from './pages/UploadPage';
 import DeckDashboard from './pages/DeckDashboard';
@@ -41,58 +43,63 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <DeckProvider>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/magic-link" element={<MagicLinkHandler />} />
+    <HelmetProvider>
+      <ThemeProvider>
+        <Router>
+          <AuthProvider>
+            <DeckProvider>
+              <Routes>
+                {/* ... existing routes ... */}
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/magic-link" element={<MagicLinkHandler />} />
 
-            {/* Marketing Routes */}
-            <Route path="/features" element={<FeaturesPage />} />
-            <Route path="/how-it-works" element={<HowItWorksPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/documentation" element={<DocsPage />} />
-            <Route path="/library" element={
-              <ProtectedRoute>
-                <LibraryPage />
-              </ProtectedRoute>
-            } />
+                {/* Marketing Routes */}
+                <Route path="/features" element={<FeaturesPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/documentation" element={<DocsPage />} />
+                <Route path="/library" element={
+                  <ProtectedRoute>
+                    <LibraryPage />
+                  </ProtectedRoute>
+                } />
 
-            {/* Legal Routes */}
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/cookies" element={<CookiePage />} />
+                {/* Legal Routes */}
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/cookies" element={<CookiePage />} />
 
-            {/* Protected Routes */}
-            <Route path="/upload" element={
-              <ProtectedRoute>
-                <UploadPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/deck" element={
-              <ProtectedRoute>
-                <DeckDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/deck/flashcards" element={
-              <ProtectedRoute>
-                <FlashcardsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/deck/quiz" element={
-              <ProtectedRoute>
-                <QuizPage />
-              </ProtectedRoute>
-            } />
-          </Routes>
-        </DeckProvider>
-      </AuthProvider>
-    </Router>
+                {/* Protected Routes */}
+                <Route path="/upload" element={
+                  <ProtectedRoute>
+                    <UploadPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/deck" element={
+                  <ProtectedRoute>
+                    <DeckDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/deck/flashcards" element={
+                  <ProtectedRoute>
+                    <FlashcardsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/deck/quiz" element={
+                  <ProtectedRoute>
+                    <QuizPage />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </DeckProvider>
+          </AuthProvider>
+        </Router>
+      </ThemeProvider>
+    </HelmetProvider>
   );
 }
 

@@ -113,8 +113,9 @@ export default function HTMLInfographicViewer({ data, onRegenerate, onClose }) {
                     backgroundColor: '#0a0a0a',
                     scale: 2,
                 });
+                const timestamp = Date.now();
                 const link = document.createElement('a');
-                link.download = `infographic-${Date.now()}.png`;
+                link.download = `infographic-${timestamp}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             } catch (e) {

@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDeck } from '../context/DeckContext';
 import { ChevronRight, RotateCcw, Brain, CheckCircle2, XCircle, ArrowLeft, Sparkles, AlertCircle } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../components/layout/Layout';
 
 export default function QuizPage() {
     const navigate = useNavigate();
-    const { quiz, triggerGeneration, quizStatus, reviewCards, deckName, resetQuiz } = useDeck();
+    const { quiz, triggerGeneration, quizStatus, reviewCards, deckName } = useDeck();
 
     const [viewState, setViewState] = useState('intro'); // intro, active, feedback, results, review
     const [currentIndex, setCurrentIndex] = useState(0);

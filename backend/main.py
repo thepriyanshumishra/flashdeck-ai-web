@@ -7,7 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 # Import the new helper
 from stream_helper import stream_report
 
-from ai_engine import extract_text
+from ai_engine import extract_text, call_llm
 from deck_builder import create_anki_deck
 import shutil
 import shutil
@@ -15,10 +15,46 @@ import os
 import uuid
 import time
 import asyncio
+from fastapi.staticfiles import StaticFiles
+from audio_service import create_podcast_audio, create_overview_audio
+
+# --- STORAGE CONFIG ---
+DATA_DIR = "data"
+DECKS_DIR = os.path.join(DATA_DIR, "decks")
+PUBLIC_DECKS_FILE = os.path.join(DATA_DIR, "public_decks.json")
+
+os.makedirs(DECKS_DIR, exist_ok=True)
+
+def save_deck_to_disk(deck_id: str, content: str):
+    file_path = os.path.join(DECKS_DIR, f"{deck_id}.txt")
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+def load_deck_from_disk(deck_id: str) -> str:
+    file_path = os.path.join(DECKS_DIR, f"{deck_id}.txt")
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return None
+
+def get_public_decks() -> List[Dict]:
+    if os.path.exists(PUBLIC_DECKS_FILE):
+        import json
+        with open(PUBLIC_DECKS_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_public_deck(deck_info: Dict):
+    public_decks = get_public_decks()
+    # Avoid duplicates
+    if not any(d['id'] == deck_info['id'] for d in public_decks):
+        public_decks.append(deck_info)
+        import json
+        with open(PUBLIC_DECKS_FILE, "w") as f:
+            json.dump(public_decks, f)
 
 # --- GLOBAL STATE STORE ---
-# In a production app, use Redis or a database.
-# Map: deck_id (str) -> full_text (str)
+# Cache for active sessions
 DECK_STORE = {}
 
 # --- CACHE STORE ---
@@ -43,6 +79,10 @@ app.add_middleware(
 def home():
     return {"status": "FlashDeck Brain is Online 🧠"}
 
+# Mount audio directory
+os.makedirs("data/audio", exist_ok=True)
+app.mount("/audio", StaticFiles(directory="data/audio"), name="audio")
+
 @app.post("/generate")
 async def generate_initial(files: List[UploadFile] = File(...)):
     """Initial processing: extract text and name the deck."""
@@ -65,18 +105,39 @@ async def generate_initial(files: List[UploadFile] = File(...)):
              raise HTTPException(status_code=400, detail="Could not extract text from uploaded files.")
 
         if len(files) == 1:
-            deck_name = files[0].filename.replace(".pdf", "")
+            deck_name_fallback = files[0].filename.replace(".pdf", "")
         else:
-            deck_name = f"{files[0].filename.replace('.pdf', '')}_plus_{len(files)-1}"
+            deck_name_fallback = f"{files[0].filename.replace('.pdf', '')}_plus_{len(files)-1}"
+
+        # Generate Better Name via AI
+        try:
+            name_prompt = f"""
+            Generate a short, concise, and descriptive title (max 5 words) for a study deck based on the following text.
+            Do not use quotes. Just the title.
+            
+            Text Preview:
+            {full_text[:3000]}
+            """
+            # Use threadpool to not block async loop
+            generated_name = await run_in_threadpool(call_llm, name_prompt)
+            if generated_name:
+                deck_name = generated_name.strip().replace('"', '').replace("'", "")
+            else:
+                deck_name = deck_name_fallback
+        except Exception as e:
+            print(f"Title Gen Error: {e}")
+            deck_name = deck_name_fallback
             
         # Store text server-side
         deck_id = str(uuid.uuid4())
         DECK_STORE[deck_id] = full_text
+        save_deck_to_disk(deck_id, full_text)
             
         return {
             "status": "success",
             "deck_id": deck_id,
             "deck_name": deck_name,
+            "full_text": full_text[:1000] + "...", # Preview
             "message": "Text stored successfully on server."
         }
     except Exception as e:
@@ -90,6 +151,10 @@ class TaskRequest(BaseModel):
     
 def get_text_or_404(deck_id: str):
     text = DECK_STORE.get(deck_id)
+    if not text:
+        text = load_deck_from_disk(deck_id)
+        if text:
+            DECK_STORE[deck_id] = text
     if not text:
         raise HTTPException(status_code=404, detail="Deck not found or session expired. Please re-upload.")
     return text
@@ -283,7 +348,77 @@ async def generate_guide(req: TaskRequest):
     except Exception as e:
         print(f"Guide Gen Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/generate/audio/podcast")
+async def generate_podcast(req: TaskRequest):
+    start_time = time.time()
+    print(f"--- Generating Podcast for: {req.deck_name} ({req.options}) ---")
+    text = get_text_or_404(req.deck_id)
+    
+    try:
+        # 1. Generate Script (NO CACHE - always fresh)
+        from agent_graph import run_agent_graph
+        result = await run_agent_graph(text, req.deck_id, "podcast_script", extra_data={"options": req.options})
+        script = result.get("podcast_script", [])
+        
+        if not script:
+             raise HTTPException(status_code=500, detail="Failed to generate podcast script.")
+             
+        # 2. Generate Audio
+        # We don't cache the audio generation itself in the AI cache (script is cached), 
+        # but we could cache the filename if we improved the cache logic.
+        # For now, let's re-generate audio if requested (or check file existence if we had a stable ID).
+        
+        audio_path = await create_podcast_audio(script, deck_id=req.deck_id)
+        filename = os.path.basename(audio_path)
+        
+        # URL Logic (Assuming localhost or relative)
+        # In prod, use env var. Frontend can prepend host if needed, or we return relative path.
+        audio_url = f"/audio/{filename}"
+        
+        await ensure_min_time(start_time, 4.0)
+        
+        return {
+            "status": "success",
+            "audio_url": audio_url,
+            "script_preview": script[:2] 
+        }
+    except Exception as e:
+        print(f"Podcast Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate/audio/overview")
+async def generate_overview(req: TaskRequest):
+    start_time = time.time()
+    print(f"--- Generating Audio Overview for: {req.deck_name} ({req.options}) ---")
+    text = get_text_or_404(req.deck_id)
+    
+    try:
+        # 1. Generate Script (NO CACHE - always fresh)
+        from agent_graph import run_agent_graph
+        result = await run_agent_graph(text, req.deck_id, "overview_script", extra_data={"options": req.options})
+        script_text = result.get("overview_script", "")
+        
+        if not script_text:
+             raise HTTPException(status_code=500, detail="Failed to generate overview script.")
+             
+        # 2. Generate Audio
+        audio_path = await create_overview_audio(script_text, deck_id=req.deck_id)
+        filename = os.path.basename(audio_path)
+        audio_url = f"/audio/{filename}"
+        
+        await ensure_min_time(start_time, 4.0)
+        
+        return {
+            "status": "success",
+            "audio_url": audio_url,
+            "script_text": script_text[:100] + "..."
+        }
+    except Exception as e:
+        print(f"Overview Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class ChatRequest(BaseModel):
@@ -392,6 +527,35 @@ async def chat_endpoint(req: ChatRequest):
 
 
     return StreamingResponse(stream_generator(), media_type="text/plain")
+
+@app.get("/decks/public")
+async def fetch_public_decks():
+    """Returns a list of public/featured decks."""
+    return {"status": "success", "decks": get_public_decks()}
+
+@app.post("/decks/{deck_id}/share")
+async def share_deck(deck_id: str, info: Dict = Body(...)):
+    """Shares a deck to the public list."""
+    # Ensure text exists
+    get_text_or_404(deck_id)
+    
+    deck_info = {
+        "id": deck_id,
+        "title": info.get("title", "Untitled Deck"),
+        "category": info.get("category", "General"),
+        "sources": info.get("sources", 1),
+        "date": time.strftime("%b %d, %Y"),
+        "image": info.get("image", "https://images.unsplash.com/photo-1544648151-1823ed3bd333?q=80\u0026w=2000\u0026auto=format\u0026fit=crop"),
+        "color": info.get("color", "from-blue-900/40 to-black/80")
+    }
+    save_public_deck(deck_info)
+    return {"status": "success", "message": "Deck shared successfully!"}
+
+@app.get("/decks/{deck_id}/text")
+async def get_deck_text(deck_id: str):
+    """Returns the full text of a deck."""
+    text = get_text_or_404(deck_id)
+    return {"status": "success", "text": text}
 
 
 

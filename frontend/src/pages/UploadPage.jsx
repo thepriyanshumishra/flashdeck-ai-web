@@ -92,7 +92,7 @@ export default function UploadPage() {
             try {
                 const errorData = JSON.parse(error.message);
                 if (errorData.detail) detail = errorData.detail;
-            } catch (e) { /* fallback */ }
+            } catch { /* fallback */ }
             alert(detail);
         } finally {
             setLoading(false);

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import { Table, Download, Search, Filter, RotateCw, X, ChevronLeft } from 'lucide-react';
 import ExportMenu from './ExportMenu';
 
 export default function DataTableView({ data, onRegenerate, onClose }) {
+    const { isDark } = useTheme();
     const [searchTerm, setSearchTerm] = useState("");
 
     if (!data || !data.rows || !data.columns) {
@@ -110,42 +112,42 @@ export default function DataTableView({ data, onRegenerate, onClose }) {
     };
 
     return (
-        <div className="h-full flex flex-col bg-[#0a0a0a] rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+        <div className={`h-full flex flex-col rounded-[40px] border overflow-hidden shadow-2xl transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-gray-200'}`}>
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-6 bg-[#0d0d0d]/80 backdrop-blur-md border-b border-white/5">
+            <div className={`flex items-center justify-between px-8 py-6 backdrop-blur-md border-b ${isDark ? 'bg-[#0d0d0d]/80 border-white/5' : 'bg-white/80 border-gray-100'}`}>
                 <div className="flex items-center gap-4">
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="mr-2 p-2 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all transform hover:scale-110"
+                            className={`mr-2 p-2 rounded-xl transition-all transform hover:scale-110 ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
                         >
                             <ChevronLeft size={20} />
                         </button>
                     )}
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/10 shadow-inner">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-inner ${isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                         <Table size={24} />
                     </div>
                     <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] block leading-none mb-1">Data Synthesis</span>
-                        <span className="text-lg font-bold text-white font-heading tracking-tight">Structured Analysis</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.3em] block leading-none mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Data Synthesis</span>
+                        <span className={`text-lg font-bold font-heading tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Structured Analysis</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative group hidden md:block">
-                        <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-white transition-colors" />
+                        <Search size={14} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-white' : 'text-gray-400 group-focus-within:text-gray-900'}`} />
                         <input
                             type="text"
                             placeholder="Filter dataset..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-[#1a1a1a] border border-white/10 rounded-2xl py-2.5 pl-11 pr-5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50 transition-all w-64 font-medium"
+                            className={`border rounded-2xl py-2.5 pl-11 pr-5 text-[11px] focus:outline-none transition-all w-64 font-medium ${isDark ? 'bg-[#1a1a1a] border-white/10 text-white placeholder-gray-600 focus:border-emerald-500/50' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-emerald-600/50'}`}
                         />
                     </div>
                     <ExportMenu onExport={handleExport} type="table" />
                     {onRegenerate && (
                         <button
                             onClick={onRegenerate}
-                            className="w-10 h-10 flex items-center justify-center hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
+                            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all border ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-white border-white/5' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900 border-gray-200'}`}
                             title="Regenerate"
                         >
                             <RotateCw size={16} />
@@ -156,23 +158,23 @@ export default function DataTableView({ data, onRegenerate, onClose }) {
 
             {/* Content */}
             <div className="flex-1 overflow-auto custom-scrollbar p-10 bg-dots">
-                <div className="border border-white/5 rounded-[32px] overflow-hidden bg-[#0d0d0d]/50 backdrop-blur-sm shadow-2xl">
+                <div className={`border rounded-[32px] overflow-hidden backdrop-blur-sm shadow-2xl ${isDark ? 'border-white/5 bg-[#0d0d0d]/50' : 'border-gray-100 bg-white/50'}`}>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-gray-300">
-                            <thead className="bg-[#1a1a1a]/80 backdrop-blur-md text-[10px] uppercase font-bold text-gray-500 tracking-[0.2em]">
+                        <table className={`w-full text-left text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                            <thead className={`backdrop-blur-md text-[10px] uppercase font-bold tracking-[0.2em] ${isDark ? 'bg-[#1a1a1a]/80 text-gray-500' : 'bg-gray-100 text-gray-400'}`}>
                                 <tr>
                                     {data.columns.map((col, idx) => (
-                                        <th key={idx} className="px-8 py-6 border-b border-white/5 min-w-[200px] font-heading">
+                                        <th key={idx} className={`px-8 py-6 border-b min-w-[200px] font-heading ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                                             {col}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-50'}`}>
                                 {filteredRows.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-emerald-500/5 transition-all group">
+                                    <tr key={idx} className={`transition-all group ${isDark ? 'hover:bg-emerald-500/5' : 'hover:bg-emerald-50'}`}>
                                         {data.columns.map((col, cIdx) => (
-                                            <td key={cIdx} className="px-8 py-6 font-medium group-hover:text-emerald-400 transition-colors">
+                                            <td key={cIdx} className={`px-8 py-6 font-medium transition-colors ${isDark ? 'group-hover:text-emerald-400' : 'group-hover:text-emerald-600'}`}>
                                                 {row[col]}
                                             </td>
                                         ))}

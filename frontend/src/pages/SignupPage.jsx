@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import { auth, googleProvider, signInWithPopup, createUserWithEmailAndPassword, updateProfile } from "../lib/firebase";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import Button from "../components/ui/Button";
+import Navbar from "../components/layout/Navbar";
 
 const GoogleIcon = () => (
     <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
@@ -17,6 +20,7 @@ const GoogleIcon = () => (
 
 export default function SignupPage() {
     const { user, loading: authLoading } = useAuth();
+    const { isDark } = useTheme();
     const navigate = useNavigate();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -68,28 +72,29 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4">
+        <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${isDark ? 'bg-[#0A0A0A]' : 'bg-gray-50'}`}>
+            <Navbar />
             <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none" />
 
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none ${isDark ? 'bg-blue-500/10' : 'bg-blue-500/5'}`} />
+            <div className={`absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none ${isDark ? 'bg-purple-500/10' : 'bg-purple-500/5'}`} />
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-md bg-[#121212] border border-white/10 p-8 rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+                className={`w-full max-w-md border p-8 rounded-3xl shadow-2xl relative z-10 overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#121212] border-white/10' : 'bg-white border-gray-200'}`}
             >
                 <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-white mb-2 font-heading tracking-tight">Create Account</h2>
-                    <p className="text-gray-400">Join thousands of students learning faster</p>
+                    <h2 className={`text-3xl font-bold mb-2 font-heading tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Account</h2>
+                    <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Join thousands of students learning faster</p>
                 </div>
 
                 {error && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center"
+                        className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center"
                     >
                         {error}
                     </motion.div>
@@ -97,13 +102,13 @@ export default function SignupPage() {
 
                 <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Full Name</label>
+                        <label className={`text-sm font-medium ml-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Full Name</label>
                         <div className="relative">
                             <User className="absolute left-3 top-3.5 text-gray-500" size={18} />
                             <input
                                 type="text"
                                 required
-                                className="w-full bg-[#1A1A1A] border border-white/10 rounded-xl px-10 py-3 text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-600 focus:ring-1 focus:ring-blue-500/20"
+                                className={`w-full border rounded-xl px-10 py-3 focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-600 focus:ring-1 focus:ring-blue-500/20 ${isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                                 placeholder="John Doe"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
@@ -112,13 +117,13 @@ export default function SignupPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Email</label>
+                        <label className={`text-sm font-medium ml-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-3.5 text-gray-500" size={18} />
                             <input
                                 type="email"
                                 required
-                                className="w-full bg-[#1A1A1A] border border-white/10 rounded-xl px-10 py-3 text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-600 focus:ring-1 focus:ring-blue-500/20"
+                                className={`w-full border rounded-xl px-10 py-3 focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-600 focus:ring-1 focus:ring-blue-500/20 ${isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                                 placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -127,13 +132,13 @@ export default function SignupPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Password</label>
+                        <label className={`text-sm font-medium ml-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-3.5 text-gray-500" size={18} />
                             <input
                                 type="password"
                                 required
-                                className="w-full bg-[#1A1A1A] border border-white/10 rounded-xl px-10 py-3 text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-600 focus:ring-1 focus:ring-blue-500/20"
+                                className={`w-full border rounded-xl px-10 py-3 focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-600 focus:ring-1 focus:ring-blue-500/20 ${isDark ? 'bg-[#1A1A1A] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                                 placeholder="Create a strong password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -141,31 +146,31 @@ export default function SignupPage() {
                         </div>
                     </div>
 
-                    <Button isLoading={loading} className="w-full bg-white text-black hover:bg-gray-200 rounded-xl py-3.5 font-semibold text-base shadow-lg shadow-white/5 mt-2 transition-all duration-300">
+                    <Button isLoading={loading} className={`w-full rounded-xl py-3.5 font-semibold text-base shadow-lg mt-2 transition-all duration-300 ${isDark ? 'bg-white text-black hover:bg-gray-200 shadow-white/5' : 'bg-black text-white hover:bg-gray-800 shadow-black/10'}`}>
                         Get Started Free <ArrowRight size={18} className="ml-2" />
                     </Button>
                 </form>
 
                 <div className="flex items-center gap-4 my-8">
-                    <div className="h-px bg-white/10 flex-1" />
-                    <span className="text-xs text-gray-500 font-medium whitespace-nowrap uppercase tracking-widest">OR JOIN WITH</span>
-                    <div className="h-px bg-white/10 flex-1" />
+                    <div className={`h-px flex-1 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                    <span className={`text-xs font-medium whitespace-nowrap uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>OR JOIN WITH</span>
+                    <div className={`h-px flex-1 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
                     <button
                         onClick={handleGoogleSignup}
                         disabled={socialLoading}
-                        className="flex items-center justify-center gap-2 w-full bg-[#1A1A1A] hover:bg-[#222] border border-white/10 text-white py-3 rounded-xl transition-all duration-300 text-sm font-medium disabled:opacity-50"
+                        className={`flex items-center justify-center gap-2 w-full border py-3 rounded-xl transition-all duration-300 text-sm font-medium disabled:opacity-50 ${isDark ? 'bg-[#1A1A1A] hover:bg-[#222] border-white/10 text-white' : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'}`}
                     >
                         {socialLoading ? <Loader2 className="animate-spin text-blue-500" size={18} /> : <GoogleIcon />}
                         <span>Continue with Google</span>
                     </button>
                 </div>
 
-                <div className="mt-8 text-center text-sm text-gray-400 font-medium">
+                <div className={`mt-8 text-center text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     Already have an account?{" "}
-                    <Link to="/login" className="text-white hover:underline decoration-blue-500/30 underline-offset-4 transition-all">
+                    <Link to="/login" className={`hover:underline decoration-blue-500/30 underline-offset-4 transition-all ${isDark ? 'text-white' : 'text-blue-600'}`}>
                         Sign in
                     </Link>
                 </div>

@@ -140,3 +140,38 @@ def generate_flashcards(file_path):
     except Exception as e:
         print(f"AI Card Gen Error: {e}")
         return []
+
+def call_llm(prompt: str) -> str:
+    """Generic helper to call the configured LLM"""
+    content = ""
+    model_is_google_native = "gemini" in AI_MODEL.lower() and ":" not in AI_MODEL
+    model_is_groq_native = any(x in AI_MODEL.lower() for x in ["llama", "mixtral", "gemma"])
+
+    try:
+        if groq_client and model_is_groq_native:
+            res = groq_client.chat.completions.create(
+                model=AI_MODEL,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            content = res.choices[0].message.content
+        
+        if not content and google_client and model_is_google_native:
+            target_model = AI_MODEL if ("gemini" in AI_MODEL.lower()) else "gemini-flash-latest"
+            res = google_client.models.generate_content(
+                model=target_model,
+                contents=prompt
+            )
+            content = res.text
+
+        if not content and or_client:
+            res = or_client.chat.completions.create(
+                model=AI_MODEL,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            content = res.choices[0].message.content
+
+    except Exception as e:
+        print(f"LLM Call Error: {e}")
+        return None
+        
+    return content

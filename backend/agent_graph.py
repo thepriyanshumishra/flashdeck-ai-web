@@ -133,6 +133,8 @@ class DeckState(TypedDict):
     slides: List[Dict]
     table: List[Dict]
     guide: Dict
+    podcast_script: List[Dict]
+    overview_script: str
     options: Dict
 
 # --- NODES ---
@@ -618,6 +620,127 @@ def generate_guide_node(state: DeckState):
                 
     return {"guide": {}}
 
+def generate_podcast_script_node(state: DeckState):
+    print("--- NODE: PODCAST SCRIPT GEN ---")
+    text = state['original_text'][:40000]
+    
+    options = state.get('options', {})
+    mode = options.get('mode', 'default') # default, brief, summarized
+    length_hint = ""
+    if mode == 'brief':
+        length_hint = "Keep the conversation concise and high-level, about 3-5 minutes."
+    elif mode == 'summarized':
+        length_hint = "Provide a very short, rapid-fire summary of the key points, about 1-2 minutes."
+    else:
+        length_hint = "Create a deep-dive conversation, about 8-10 minutes."
+        
+    system_instruction = f"""You are a professional podcast producer. 
+    Create a script for a podcast episode based on the provided text.
+    The hosts are "Host A" (Main Host) and "Host B" (Co-Host/Expert).
+    
+    TONE: Engaging, conversational, natural (use fillers like "Right", "Exactly", "Wow" occasionally).
+    GOAL: {length_hint}
+    
+    Respond ONLY with JSON matching this format:
+    {{
+      "script": [
+        {{ "speaker": "Host A", "text": "Welcome back to the show. Today we're diving into..." }},
+        {{ "speaker": "Host B", "text": "That's right! It's a fascinating topic..." }}
+      ]
+    }}
+    """
+    
+    try:
+        # 1. Google Native
+        if google_client and model_is_google_native:
+            try:
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
+                    contents=f"TEXT: {text}"
+                )
+                content = res.text
+                if content:
+                     data = json.loads(content, strict=False)
+                     return {"podcast_script": data.get("script", [])}
+            except Exception as e:
+                print(f"Native Podcast Script Error: {e}")
+
+        # 2. LangChain Fallback
+        if llm:
+            messages = [
+                SystemMessage(content=system_instruction),
+                ("user", "TEXT: {text}")
+            ]
+            prompt = ChatPromptTemplate.from_messages(messages)
+            chain = prompt | llm | JsonOutputParser()
+            res = chain.invoke({"text": text})
+            return {"podcast_script": res.get("script", [])}
+            
+    except Exception as e:
+        print(f"Podcast Script Gen Error: {e}")
+        
+    return {"podcast_script": []}
+
+def generate_overview_script_node(state: DeckState):
+    print("--- NODE: OVERVIEW SCRIPT GEN ---")
+    text = state['original_text'][:40000]
+    
+    options = state.get('options', {})
+    mode = options.get('mode', 'default')
+    
+    style_instruction = ""
+    if mode == 'brief':
+        style_instruction = "Give a 2-minute concise overview of the main concepts."
+    elif mode == 'summarized':
+        style_instruction = "Give a 1-minute high-level summary."
+    else:
+        style_instruction = "Give a comprehensive, 5-minute explanation, like a university lecturer."
+    
+    system_instruction = f"""You are an expert professor.
+    Write a spoken monologue script explaining the provided material to a student.
+    
+    STYLE: Clear, authoritative, easy to follow, educational.
+    GOAL: {style_instruction}
+    
+    Respond ONLY with JSON matching this format:
+    {{
+      "text": "Hello students. Today we are exploring..."
+    }}
+    """
+    
+    try:
+         # 1. Google Native
+        if google_client and model_is_google_native:
+            try:
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
+                    contents=f"TEXT: {text}"
+                )
+                content = res.text
+                if content:
+                     data = json.loads(content, strict=False)
+                     return {"overview_script": data.get("text", "")}
+            except Exception as e:
+                print(f"Native Overview Script Error: {e}")
+                
+        # 2. LangChain Fallback
+        if llm:
+            messages = [
+                SystemMessage(content=system_instruction),
+                ("user", "TEXT: {text}")
+            ]
+            prompt = ChatPromptTemplate.from_messages(messages)
+            chain = prompt | llm | JsonOutputParser()
+            res = chain.invoke({"text": text})
+            return {"overview_script": res.get("text", "")}
+            
+    except Exception as e:
+        print(f"Overview Script Gen Error: {e}")
+        
+    return {"overview_script": ""}
+
 def refine_deck(state: DeckState):
     print("--- NODE: REFINER ---")
     # Simple pass-through: In a real app, you might deduplicate or polish here.
@@ -637,6 +760,8 @@ workflow.add_node("refiner", refine_deck)
 workflow.add_node("report_gen", generate_report_node)
 workflow.add_node("slides_gen", generate_slides_node)
 workflow.add_node("table_gen", generate_table_node)
+workflow.add_node("podcast_gen", generate_podcast_script_node)
+workflow.add_node("overview_gen", generate_overview_script_node)
 
 
 workflow.set_entry_point("chunker")
@@ -695,6 +820,10 @@ def run_selective_node(text: str, task_type: str, extra_data: Dict = None):
                 state.update(generate_table_node(state))
             elif task_type == "guide":
                 state.update(generate_guide_node(state))
+            elif task_type == "podcast_script":
+                state.update(generate_podcast_script_node(state))
+            elif task_type == "overview_script":
+                state.update(generate_overview_script_node(state))
                 
             return state
         except Exception as e:

@@ -1,10 +1,13 @@
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { motion } from "framer-motion";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function MarketingLayout({ children, title, subtitle }) {
+    const { isDark } = useTheme();
+
     return (
-        <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+        <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#0A0A0A]' : 'bg-gray-50'}`}>
             <Navbar />
 
             <main className="flex-grow pt-32 pb-24 px-6">
@@ -14,7 +17,7 @@ export default function MarketingLayout({ children, title, subtitle }) {
                             <motion.h1
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tight"
+                                className={`text-4xl md:text-6xl font-black mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
                             >
                                 {title}
                             </motion.h1>
@@ -23,7 +26,7 @@ export default function MarketingLayout({ children, title, subtitle }) {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.1 }}
-                                    className="text-gray-400 text-lg max-w-2xl mx-auto"
+                                    className={`text-lg max-w-2xl mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
                                 >
                                     {subtitle}
                                 </motion.p>
@@ -45,3 +48,4 @@ export default function MarketingLayout({ children, title, subtitle }) {
         </div>
     );
 }
+

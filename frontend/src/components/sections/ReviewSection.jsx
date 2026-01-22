@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, BookOpen, Repeat, Eye, EyeOff } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 const Flashcard = ({ card, index }) => {
+    const { isDark } = useTheme();
     const [isFlipped, setIsFlipped] = useState(false);
 
     return (
@@ -19,26 +21,26 @@ const Flashcard = ({ card, index }) => {
             >
                 {/* --- FRONT (QUESTION) --- */}
                 <div className="absolute inset-0 w-full h-full backface-hidden">
-                    <div className="w-full h-full bg-[#111] rounded-2xl border border-white/10 p-8 flex flex-col justify-between hover:border-indigo-500/30 transition-all shadow-2xl hover:shadow-indigo-500/10">
+                    <div className={`w-full h-full rounded-2xl border p-8 flex flex-col justify-between hover:border-indigo-500/30 transition-all shadow-2xl hover:shadow-indigo-500/10 ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-gray-200 shadow-xl'}`}>
                         <div className="flex justify-between items-start">
-                            <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full tracking-widest uppercase">
+                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full tracking-widest uppercase ${isDark ? 'text-indigo-400 bg-indigo-500/10' : 'text-indigo-600 bg-indigo-50'}`}>
                                 Card {index + 1}
                             </span>
-                            <Sparkles size={16} className="text-gray-600 group-hover:text-indigo-400 transition-colors" />
+                            <Sparkles size={16} className={`transition-colors ${isDark ? 'text-gray-600 group-hover:text-indigo-400' : 'text-gray-400 group-hover:text-indigo-600'}`} />
                         </div>
 
                         <div className="flex-1 flex items-center justify-center text-center my-4 overflow-y-auto custom-scrollbar w-full">
-                            <h3 className="text-xl md:text-2xl font-bold text-gray-100 font-lexend leading-snug">
+                            <h3 className={`text-xl md:text-2xl font-bold font-lexend leading-snug ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                 {card.q}
                             </h3>
                         </div>
 
-                        <div className="flex items-center justify-between text-gray-500 text-xs font-medium uppercase tracking-wider border-t border-white/5 pt-4">
+                        <div className={`flex items-center justify-between text-[10px] font-bold uppercase tracking-wider border-t pt-4 ${isDark ? 'text-gray-500 border-white/5' : 'text-gray-400 border-gray-100'}`}>
                             <span className="flex items-center gap-2">
                                 <Repeat size={12} />
                                 Flip to reveal
                             </span>
-                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                                 <Eye size={14} />
                             </div>
                         </div>
@@ -50,24 +52,24 @@ const Flashcard = ({ card, index }) => {
                     className="absolute inset-0 w-full h-full backface-hidden"
                     style={{ transform: 'rotateY(180deg)' }}
                 >
-                    <div className="w-full h-full bg-[#0a0a0a] rounded-2xl border border-indigo-500/30 p-8 flex flex-col justify-between shadow-2xl shadow-indigo-500/5 relative overflow-hidden">
+                    <div className={`w-full h-full rounded-2xl border p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden ${isDark ? 'bg-[#0a0a0a] border-indigo-500/30 shadow-indigo-500/5' : 'bg-white border-emerald-500/30 shadow-emerald-500/5'}`}>
                         {/* Background Gradient */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full -z-10 pointer-events-none" />
+                        <div className={`absolute top-0 right-0 w-32 h-32 blur-[50px] rounded-full -z-10 pointer-events-none ${isDark ? 'bg-indigo-500/10' : 'bg-emerald-500/10'}`} />
 
                         <div className="flex justify-between items-start mb-4">
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full tracking-widest uppercase">
+                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full tracking-widest uppercase ${isDark ? 'text-emerald-400 bg-emerald-500/10' : 'text-emerald-600 bg-emerald-50'}`}>
                                 Answer
                             </span>
                         </div>
 
                         <div className="flex-1 flex items-center justify-center text-center overflow-y-auto custom-scrollbar">
-                            <p className="text-lg text-gray-200 font-sans leading-relaxed">
+                            <p className={`text-lg font-sans leading-relaxed ${isDark ? 'text-gray-200' : 'text-gray-900 font-medium'}`}>
                                 {card.a}
                             </p>
                         </div>
 
-                        <div className="flex items-center justify-center mt-6 pt-4 border-t border-white/5">
-                            <span className="text-xs text-gray-500 flex items-center gap-2 uppercase tracking-wider">
+                        <div className={`flex items-center justify-center mt-6 pt-4 border-t ${isDark ? 'border-white/5 text-gray-500' : 'border-gray-100 text-gray-400'}`}>
+                            <span className="text-[10px] font-bold flex items-center gap-2 uppercase tracking-wider">
                                 <EyeOff size={12} />
                                 Tap to hide
                             </span>
