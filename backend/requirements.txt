@@ -15,3 +15,4 @@ langchain-text-splitters
 langsmith
 edge-tts
 gtts
+google-genai
