@@ -2,7 +2,7 @@
 
 > **"From PDF to Flashcards, Mind Maps, and Quizzes in Seconds — Powered by Groq AI."**
 
-FlashDeck AI is a full-stack automated learning platform. It mimics the efficiency of **Google's NotebookLM**, analyzing complex documents and intelligently synthesizing them into high-quality study materials using a **LangGraph Multi-Agent Architecture** powered by **Groq**.
+FlashDeck AI is a full-stack automated learning platform. It analyzes complex documents and intelligently synthesizing them into high-quality study materials using a **LangGraph Multi-Agent Architecture** powered by **Groq**.
 
 ---
 
