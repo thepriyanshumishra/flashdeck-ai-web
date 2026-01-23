@@ -3,12 +3,10 @@ uvicorn
 pydantic
 pymupdf
 python-dotenv
-google-genai
 openai
 groq
 langchain
 langchain-openai
-langchain-google-genai
 langchain-groq
 langgraph
 genanki

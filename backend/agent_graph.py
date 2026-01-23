@@ -9,8 +9,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import StateGraph, END
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
-from google import genai
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from groq import Groq
 import warnings
@@ -20,35 +18,12 @@ from pathlib import Path
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# Suppress the deprecation warning for langchain_google_genai if it persists
-warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
-
 # --- LLM SETUP ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-AI_MODEL = os.getenv("AI_MODEL", "gemini-flash-latest")
+AI_MODEL = os.getenv("AI_MODEL", "llama-3.3-70b-versatile")
 
-# Ensure models with ':free' or other provider prefixes go to OpenRouter, not native Google
-model_is_google_native = "gemini" in AI_MODEL.lower() and ":" not in AI_MODEL
-
-# 0. Global Client for New SDK
-google_client = None
-if GOOGLE_API_KEY:
-    google_client = genai.Client(api_key=GOOGLE_API_KEY)
-
-# 1. Prepare Google LLM (Old SDK wrapper for LC compat)
-google_llm = None
-if GOOGLE_API_KEY:
-    target_google_model = AI_MODEL if model_is_google_native else "gemini-flash-latest"
-    google_llm = ChatGoogleGenerativeAI(
-        model=target_google_model,
-        google_api_key=GOOGLE_API_KEY,
-        temperature=0.3,
-        max_retries=1
-    )
-
-# 2. Prepare OpenRouter LLM
+# 1. Prepare OpenRouter LLM
 openrouter_llm = None
 if OPENROUTER_API_KEY:
     openrouter_llm = ChatOpenAI(
@@ -62,7 +37,7 @@ if OPENROUTER_API_KEY:
         }
     )
 
-# 2.5 Prepare Groq LLM
+# 2. Prepare Groq LLM
 groq_llm = None
 if GROQ_API_KEY:
     target_groq_model = AI_MODEL if ("llama" in AI_MODEL.lower() or "mixtral" in AI_MODEL.lower() or "gemma" in AI_MODEL.lower()) else "llama-3.3-70b-versatile"
@@ -74,7 +49,7 @@ if GROQ_API_KEY:
         max_retries=2
     )
 
-# 2.6 Direct Groq Client (For high-speed, low-overhead generation)
+# 3. Direct Groq Client (For high-speed, low-overhead generation)
 direct_groq_client = None
 if GROQ_API_KEY:
     try:
@@ -82,18 +57,14 @@ if GROQ_API_KEY:
     except Exception as e:
         print(f"Failed to init direct Groq client: {e}")
 
-# 3. Create Intelligent LLM Chain with explicit error handling for fallbacks
+# 4. Create Intelligent LLM Chain
 fallbacks = []
 if groq_llm: fallbacks.append(groq_llm)
-if google_llm: fallbacks.append(google_llm)
 if openrouter_llm: fallbacks.append(openrouter_llm)
 
 if "llama" in AI_MODEL.lower() and groq_llm:
     print(f"--- AI Config: Using Groq (Primary) ---")
     llm = groq_llm.with_fallbacks([f for f in fallbacks if f != groq_llm])
-elif model_is_google_native and google_llm:
-    print(f"--- AI Config: Using Google (Primary) ---")
-    llm = google_llm.with_fallbacks([f for f in fallbacks if f != google_llm])
 elif openrouter_llm:
     print(f"--- AI Config: Using OpenRouter (Primary) ---")
     llm = openrouter_llm.with_fallbacks([f for f in fallbacks if f != openrouter_llm])
@@ -176,16 +147,7 @@ def generate_report_node(state: DeckState):
             except Exception as e:
                 print(f"Direct Groq Report Gen Error: {e}")
 
-        if not content and google_client and model_is_google_native:
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction},
-                    contents=f"TEXT: {text}"
-                )
-                content = res.text
-            except Exception as e:
-                print(f"Native Report Gen Error: {e}")
+
 
         if not content and llm:
             # FIX: Use SystemMessage to avoid variable parsing in the instruction
@@ -237,16 +199,7 @@ def generate_slides_node(state: DeckState):
             except Exception as e:
                 print(f"Direct Groq Slides Gen Error: {e}")
 
-        if not content and google_client and model_is_google_native:
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                    contents=f"TEXT: {text}"
-                )
-                content = res.text
-            except Exception as e:
-                print(f"Native Slides Gen Error: {e}")
+
 
         if not content and llm:
             messages = [
@@ -300,16 +253,7 @@ def generate_table_node(state: DeckState):
             except Exception as e:
                 print(f"Direct Groq Table Gen Error: {e}")
 
-        if not content and google_client and model_is_google_native:
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                    contents=f"TEXT: {text}"
-                )
-                content = res.text
-            except Exception as e:
-                print(f"Native Table Gen Error: {e}")
+
 
         if not content and llm:
             messages = [
@@ -366,16 +310,7 @@ USER PREFERENCES:
             except Exception as e:
                 print(f"Direct Groq Flowchart Error: {e}")
 
-        if not content and google_client and model_is_google_native:
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction},
-                    contents=prompt_text
-                )
-                content = res.text
-            except Exception as e:
-                print(f"Native Flowchart Error: {e}")
+
 
         # 3. Fallback to LangChain
         if not content and llm:
@@ -440,16 +375,7 @@ Respond ONLY with JSON matching the format: {{ "cards": [{{ "q": "...", "a": "..
                 except Exception as e:
                     print(f"Direct Groq Card Gen Error: {e}")
 
-            if not content and google_client and model_is_google_native:
-                 try:
-                     res = google_client.models.generate_content(
-                         model=target_google_model,
-                         config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                         contents=f"TEXT: {chunk}"
-                     )
-                     content = res.text
-                 except Exception as e:
-                     print(f"Native Card Gen Error: {e}")
+
 
             if not content and llm:
                 print("DEBUG: Using LangChain wrapper for Cards")
@@ -510,16 +436,7 @@ def generate_quiz_node(state: DeckState):
     
     try:
         content = ""
-        if google_client and model_is_google_native:
-             try:
-                 res = google_client.models.generate_content(
-                     model=target_google_model,
-                     config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                     contents=f"TEXT: {text}"
-                 )
-                 content = res.text
-             except Exception as e:
-                 print(f"Native Quiz Gen Error: {e}")
+
 
         if not content and llm:
             print("DEBUG: Using LangChain for Quiz Gen")
@@ -554,16 +471,7 @@ def generate_review_node(state: Dict):
     
     try:
         content = ""
-        if google_client and model_is_google_native:
-             try:
-                 res = google_client.models.generate_content(
-                     model=target_google_model,
-                     config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                     contents=f"MISSED TOPICS:\n{context}"
-                 )
-                 content = res.text
-             except Exception as e:
-                 print(f"Native Review Gen Error: {e}")
+
 
         if content:
             data = json.loads(content.replace("```json", "").replace("```", "").strip(), strict=False)
@@ -599,17 +507,7 @@ def generate_guide_node(state: DeckState):
     
     try:
         content = ""
-        if google_client and model_is_google_native:
 
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                    contents=f"TEXT: {text}"
-                )
-                content = res.text
-            except Exception as e:
-                print(f"Native Guide Gen Error: {e}")
 
         if not content and llm:
             messages = [
@@ -673,20 +571,7 @@ def generate_podcast_script_node(state: DeckState):
     """
     
     try:
-        # 1. Google Native
-        if google_client and model_is_google_native:
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                    contents=f"TEXT: {text}"
-                )
-                content = res.text
-                if content:
-                     data = json.loads(content, strict=False)
-                     return {"podcast_script": data.get("script", [])}
-            except Exception as e:
-                print(f"Native Podcast Script Error: {e}")
+
 
         # 2. LangChain Fallback
         if llm:
@@ -732,20 +617,7 @@ def generate_overview_script_node(state: DeckState):
     """
     
     try:
-         # 1. Google Native
-        if google_client and model_is_google_native:
-            try:
-                res = google_client.models.generate_content(
-                    model=target_google_model,
-                    config={'system_instruction': system_instruction, 'response_mime_type': 'application/json'},
-                    contents=f"TEXT: {text}"
-                )
-                content = res.text
-                if content:
-                     data = json.loads(content, strict=False)
-                     return {"overview_script": data.get("text", "")}
-            except Exception as e:
-                print(f"Native Overview Script Error: {e}")
+
                 
         # 2. LangChain Fallback
         if llm:

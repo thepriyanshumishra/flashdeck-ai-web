@@ -426,8 +426,8 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
-    from agent_graph import llm, GOOGLE_API_KEY
-    print(f"DEBUG: Chat endpoint called. Google Key Present: {bool(GOOGLE_API_KEY)}")
+    from agent_graph import llm
+    print(f"DEBUG: Chat endpoint called. LLM Active: {bool(llm)}")
     from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 

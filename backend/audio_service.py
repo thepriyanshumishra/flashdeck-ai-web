@@ -15,10 +15,11 @@ VOICE_HOST_B = "en-US-AriaNeural"     # Female Host
 VOICE_TEACHER = "en-US-BrianNeural"   # Teacher
 
 # Voice mapping for gTTS (primary)
+# Using varied English accents to distinguish speakers
 GTTS_VOICE_MAP = {
-    "host_a": {"lang": "en", "tld": "com"},      # US English Male-ish
-    "host_b": {"lang": "en", "tld": "co.uk"},    # UK English Female-ish
-    "teacher": {"lang": "en", "tld": "com"},     # US English Teacher
+    "host_a": {"lang": "en", "tld": "us"},      # US English (Standard)
+    "host_b": {"lang": "en", "tld": "co.uk"},   # British English (Distinguishes Co-Host)
+    "teacher": {"lang": "en", "tld": "co.in"},  # Indian English (Clear, slightly slower, good for lecturing)
 }
 
 async def generate_speech_file_gtts(text: str, voice_type: str, filename: str) -> str:
@@ -76,25 +77,23 @@ async def generate_speech_file_edge(text: str, voice: str, filename: str) -> str
 async def generate_speech_file(text: str, voice: str, filename: str, voice_type: str = "teacher") -> str:
     """
     Generates speech file with automatic fallback.
-    Primary: Google TTS (gTTS) - Free and reliable
-    Fallback: Edge TTS - Higher quality but can be unreliable
+    Primary: Google TTS (gTTS) - Free, Reliable, but Robotic
+    Fallback: Edge TTS - High Quality, but Unreliable
     """
+    # 1. Try Google TTS (Primary for now due to Edge instability)
     try:
-        # Try Google TTS first (primary)
-        print(f"🎤 Attempting audio generation with Google TTS...")
+        print(f"🎤 Attempting audio generation with Google TTS ({voice_type})...")
         return await generate_speech_file_gtts(text, voice_type, filename)
     except Exception as gtts_error:
         print(f"⚠️ Google TTS failed: {gtts_error}")
-        print(f"🔄 Falling back to Edge TTS...")
         
-        try:
-            # Fallback to Edge TTS
-            return await generate_speech_file_edge(text, voice, filename)
-        except Exception as edge_error:
-            print(f"❌ Both TTS services failed!")
-            print(f"   - Google TTS: {gtts_error}")
-            print(f"   - Edge TTS: {edge_error}")
-            raise Exception(f"All TTS services failed. Google TTS: {gtts_error}, Edge TTS: {edge_error}")
+    # 2. Fallback to Edge TTS if gTTS fails (unlikely)
+    try:
+        print(f"🔄 Falling back to Edge TTS...")
+        return await generate_speech_file_edge(text, voice, filename)
+    except Exception as edge_error:
+        print(f"❌ Both TTS services failed!")
+        raise Exception(f"All TTS services failed. Google TTS: {gtts_error}, Edge TTS: {edge_error}")
 
 async def create_podcast_audio(script: list, deck_id: str = None) -> str:
     """
