@@ -2,7 +2,7 @@
 
 > **"From PDF to Flashcards, Mind Maps, and Quizzes in Seconds — Powered by Groq AI."**
 
-FlashDeck AI is a full-stack automated learning platform. It mimics the efficiency of **Google's DeckLM**, analyzing complex documents and intelligently synthesizing them into high-quality study materials using a **LangGraph Multi-Agent Architecture** powered by **Groq**.
+FlashDeck AI is a full-stack automated learning platform. It mimics the efficiency of **Google's NotebookLM**, analyzing complex documents and intelligently synthesizing them into high-quality study materials using a **LangGraph Multi-Agent Architecture** powered by **Groq**.
 
 ---
 
@@ -32,46 +32,47 @@ graph TD
 
 ### 🧠 The Agents (LangGraph)
 1.  **The Chunker**: Performs semantic splitting of large PDFs to maintain context for high-performance Llama models.
-2.  **Studio Generator**: A versatile agent that handles multiple tasks (Cards, Mind Maps, Quizzes) using high-speed **Groq (Llama 3.3 70B)** logic.
+2.  **Studio Generator**: A versatile agent that handles multiple tasks (Cards, Mind Maps, Quizzes, Reports, Slides, Tables) using high-speed **Groq (Llama 3.3 70B)** logic.
 3.  **Review Specialist**: A specialized agent that listens to your quiz results, identifies knowledge gaps, and creates targeted "remedial" flashcards.
 
 ---
 
 ## 🚀 Key Features
 
--   **High-Speed AI Interface**: Powered by **Groq** for near-instant generation (250+ tokens/sec).
--   **Personalized Library Dashboard**: Organize your notes with a beautiful, DeckLM-style library view.
--   **100% Free Public Beta**: All premium features (Pro and Team tiers) are accessible for $0 during our testing phase.
--   **Interactive Quiz System**: Test yourself with AI-generated MCQs directly inside the platform.
--   **Targeted Review**: Missed a question? The AI automatically creates focused study cards for those specific weak spots.
--   **Automated Mind Mapping**: Convert lecture notes into visual hierarchies using **Mermaid.js**.
--   **Glassmorphic 3D Interface**: Premium dark-mode aesthetics with custom AI-generated 3D illustrations.
--   **Universal Export**: 
-    -   📸 **Image Grid** (PNG) for sharing.
-    -   📄 **PDF** (High-Res) for printing.
-    -   🎴 **Anki Package** (.apkg) for serious study.
+### 🎨 Premium Design
+- **Glassmorphic 3D Interface**: Premium dark-mode aesthetics with custom AI-generated 3D illustrations.
+- **Dynamic Interaction**: Hover effects, smooth transitions, and a "Notion-like" focus on content.
+
+### 🧠 Intelligent Study Tools
+- **High-Speed AI**: Powered by **Groq** for near-instant generation (250+ tokens/sec).
+- **Interactive Quiz System**: Test yourself with AI-generated MCQs and get instant feedback.
+- **Targeted Review**: The AI automatically identifies knowledge gaps from quiz performance and creates focused study cards.
+- **Automated Mind Mapping**: Convert lecture notes into visual hierarchies using **Mermaid.js**.
+- **Deep Research Reports**: Generate comprehensive Markdown reports from your documents.
+
+### 📂 Organization & Export
+- **Personalized Library**: Organize your notes with a beautiful dashboard view.
+- **Universal Export**: 
+    - 📸 **Image Grid** (PNG) for sharing.
+    - 📄 **PDF** (High-Res) for printing.
+    - 🎴 **Anki Package** (.apkg) for serious study.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Backend (Python)
--   **Engine**: Groq (Llama 3.3 70B Versatile)
--   **Orchestration**: LangGraph, LangChain
--   **API Framework**: FastAPI
--   **Processing**: PyPDF for document extraction
-
 ### Frontend (React)
--   **Framework**: Vite + React + Framer Motion
--   **Authentication**: Firebase (Magic Links)
--   **Styling**: Vanilla CSS (Premium Dark Theme)
--   **Illustrations**: Custom AI-generated 3D assets
+- **Framework**: Vite + React + Framer Motion
+- **Authentication**: Firebase (Magic Links)
+- **Database**: Supabase
+- **Styling**: Vanilla CSS (Premium Dark Theme)
+- **Visuals**: Mermaid.js, KaTeX, Lucide Icons
 
----
-
-## 🌐 Deployment
-For a detailed guide on how to deploy this app with automated GitHub sync (Vercel + Render), check out:
-👉 **[Deployment Guide](./deployment.md)**
+### Backend (Python)
+- **Engine**: Groq (Llama 3.3 70B Versatile), Google Gemini
+- **Orchestration**: LangGraph, LangChain
+- **API Framework**: FastAPI
+- **Audio**: OpenAI TTS / Google TTS for Podcasts & Lessons
 
 ---
 
@@ -80,28 +81,31 @@ For a detailed guide on how to deploy this app with automated GitHub sync (Verce
 ### 1. Backend Setup
 ```bash
 cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Environment Setup
-# Copy the example env file to .env
-cp ../.env.example ../.env
-
-# Edit the .env file with your specific keys:
-# - GROQ_API_KEY (Recommended)
-# - GOOGLE_API_KEY
-# - OPENROUTER_API_KEY
+# Create .env in the root directory
+# Required: GOOGLE_API_KEY, GROQ_API_KEY
 ```
 
 ```bash
 # Run Server
-source venv/bin/activate
 uvicorn main:app --reload --port 8000
 ```
 
 ### 2. Frontend Setup
 ```bash
-# Go to the frontend directory
+cd frontend
 npm install
+
+# Create .env in the frontend directory
+# Required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+# Optional: Firebase config if using Auth features
+```
+
+```bash
+# Run App
 npm run dev
 ```
 
@@ -114,15 +118,9 @@ Visit `http://localhost:5173` and start your high-speed study session! 🎓
 Created with 🤍 by **[Priyanshu Mishra](https://github.com/thepriyanshumishra)**.
 
 Connect with me:
--   **X (Twitter)**: [@thedarkpcm](https://x.com/thedarkpcm)
--   **LinkedIn**: [Priyanshu Mishra](https://www.linkedin.com/in/thepriyanshumishra/)
--   **Instagram**: [@realpriyanshumishra](https://www.instagram.com/realpriyanshumishra)
-
-## 🤝 Contributors
-
-<a href="https://github.com/thepriyanshumishra/flashdeck-ai-web/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=thepriyanshumishra/flashdeck-ai-web" />
-</a>
+- **X (Twitter)**: [@thedarkpcm](https://x.com/thedarkpcm)
+- **LinkedIn**: [Priyanshu Mishra](https://www.linkedin.com/in/thepriyanshumishra/)
+- **Instagram**: [@realpriyanshumishra](https://www.instagram.com/realpriyanshumishra)
 
 ## 🌟 Star History
 
