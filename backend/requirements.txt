@@ -16,3 +16,4 @@ python-multipart
 langchain-text-splitters
 langsmith
 edge-tts
+gtts
