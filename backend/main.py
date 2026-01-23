@@ -79,9 +79,6 @@ app.add_middleware(
 def home():
     return {"status": "FlashDeck Brain is Online 🧠"}
 
-# Mount audio directory
-os.makedirs("data/audio", exist_ok=True)
-app.mount("/audio", StaticFiles(directory="data/audio"), name="audio")
 
 @app.post("/generate")
 async def generate_initial(files: List[UploadFile] = File(...)):
@@ -558,5 +555,7 @@ async def get_deck_text(deck_id: str):
     return {"status": "success", "text": text}
 
 
-
-
+# --- Static File Serving ---
+# IMPORTANT: Mount static files AFTER all route definitions to prevent path conflicts
+os.makedirs("data/audio", exist_ok=True)
+app.mount("/audio", StaticFiles(directory="data/audio"), name="audio")
