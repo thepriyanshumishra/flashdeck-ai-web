@@ -1450,7 +1450,7 @@ export default function DeckDashboard() {
 const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, handleSendMessage, saveNote }) => {
     // Local parsing logic for suggestions in assistant messages
     let cleanContent = msg.content;
-    let suggestions = [];
+    let chatSuggestions = [];
 
     // Capture EVERYTHING from [SUGGESTIONS] to the end of the brackets, non-greedily
     const suggestionMatch = msg.content.match(/\[SUGGESTIONS\]:?\s*(\[[\s\S]*?\])/i);
@@ -1535,27 +1535,27 @@ const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, h
                         remarkPlugins={REMARK_PLUGINS}
                         rehypePlugins={REHYPE_PLUGINS}
                         components={{
-                            strong: ({ node, ...props }) => <strong className={`font-bold ${isDark ? 'text-white/95' : 'text-gray-950'}`} {...props} />,
-                            em: ({ node, ...props }) => <em className={`italic ${isDark ? 'text-gray-400' : 'text-gray-600'}`} {...props} />,
-                            blockquote: ({ node, ...props }) => <blockquote className={`border-l-2 pl-4 my-4 italic py-1 ${isDark ? 'border-indigo-500/50 text-gray-400 bg-indigo-500/5' : 'border-indigo-600/50 text-gray-700 bg-indigo-50'}`} {...props} />,
-                            p: ({ node, ...props }) => <div className={`mb-4 last:mb-0 leading-relaxed text-[14px] md:text-[15px] ${isDark ? 'text-gray-300/90' : 'text-gray-900 font-medium'}`} {...props} />,
-                            ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
-                            ol: ({ node, ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
-                            li: ({ node, ...props }) => <li className={`text-[14px] md:text-[15px] ${isDark ? '' : 'text-gray-900'}`} {...props} />,
-                            h1: ({ node, ...props }) => <h1 className={`text-xl md:text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                            h2: ({ node, ...props }) => <h2 className={`text-lg md:text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                            h3: ({ node, ...props }) => <h3 className={`text-base md:text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                            table: ({ node, ...props }) => (
+                            strong: ({ _node, ...props }) => <strong className={`font-bold ${isDark ? 'text-white/95' : 'text-gray-950'}`} {...props} />,
+                            em: ({ _node, ...props }) => <em className={`italic ${isDark ? 'text-gray-400' : 'text-gray-600'}`} {...props} />,
+                            blockquote: ({ _node, ...props }) => <blockquote className={`border-l-2 pl-4 my-4 italic py-1 ${isDark ? 'border-indigo-500/50 text-gray-400 bg-indigo-500/5' : 'border-indigo-600/50 text-gray-700 bg-indigo-50'}`} {...props} />,
+                            p: ({ _node, ...props }) => <div className={`mb-4 last:mb-0 leading-relaxed text-[14px] md:text-[15px] ${isDark ? 'text-gray-300/90' : 'text-gray-900 font-medium'}`} {...props} />,
+                            ul: ({ _node, ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
+                            ol: ({ _node, ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
+                            li: ({ _node, ...props }) => <li className={`text-[14px] md:text-[15px] ${isDark ? '' : 'text-gray-900'}`} {...props} />,
+                            h1: ({ _node, ...props }) => <h1 className={`text-xl md:text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                            h2: ({ _node, ...props }) => <h2 className={`text-lg md:text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                            h3: ({ _node, ...props }) => <h3 className={`text-base md:text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                            table: ({ _node, ...props }) => (
                                 <div className={`my-6 overflow-x-auto rounded-2xl border ${isDark ? 'border-white/10 bg-[#121212]' : 'border-gray-200 bg-gray-50'}`}>
                                     <table className="w-full text-left border-collapse text-sm" {...props} />
                                 </div>
                             ),
-                            thead: ({ node, ...props }) => <thead className={`${isDark ? 'bg-white/5 text-gray-200' : 'bg-gray-200 text-gray-900'} font-semibold`} {...props} />,
-                            th: ({ node, ...props }) => <th className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-300'}`} {...props} />,
-                            td: ({ node, ...props }) => <td className={`p-4 border-b ${isDark ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-800'}`} {...props} />,
-                            tr: ({ node, ...props }) => <tr className={`${isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'} transition-colors`} {...props} />,
-                            pre: ({ node, ...props }) => <pre className={`font-mono ${isDark ? 'text-gray-300 bg-[#121212] border-white/5' : 'text-gray-800 bg-gray-100 border-gray-200'} whitespace-pre-wrap p-4 rounded-2xl border my-4 overflow-x-auto custom-scrollbar`} {...props} />,
-                            code: ({ node, inline, ...props }) => (
+                            thead: ({ _node, ...props }) => <thead className={`${isDark ? 'bg-white/5 text-gray-200' : 'bg-gray-200 text-gray-900'} font-semibold`} {...props} />,
+                            th: ({ _node, ...props }) => <th className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-300'}`} {...props} />,
+                            td: ({ _node, ...props }) => <td className={`p-4 border-b ${isDark ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-800'}`} {...props} />,
+                            tr: ({ _node, ...props }) => <tr className={`${isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'} transition-colors`} {...props} />,
+                            pre: ({ _node, ...props }) => <pre className={`font-mono ${isDark ? 'text-gray-300 bg-[#121212] border-white/5' : 'text-gray-800 bg-gray-100 border-gray-200'} whitespace-pre-wrap p-4 rounded-2xl border my-4 overflow-x-auto custom-scrollbar`} {...props} />,
+                            code: ({ _node, inline, ...props }) => (
                                 inline
                                     ? <span className={`font-mono ${isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-100'} px-1.5 py-0.5 rounded text-xs`} {...props} />
                                     : <code className="block w-full" {...props} />
@@ -1595,9 +1595,9 @@ const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, h
             </div>
 
             {/* Dynamic Suggestions for Assistant Messages */}
-            {msg.role === 'assistant' && isLastMessage && !isChatLoading && suggestions.length > 0 && (
+            {msg.role === 'assistant' && isLastMessage && !isChatLoading && chatSuggestions.length > 0 && (
                 <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500 pl-2">
-                    {suggestions.map((q, j) => (
+                    {chatSuggestions.map((q, j) => (
                         <button
                             key={j}
                             onClick={() => handleSendMessage(q)}

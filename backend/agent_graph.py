@@ -150,10 +150,6 @@ def chunk_document(state: DeckState):
 
 from langchain_core.messages import SystemMessage
 
-# ... (Previous imports)
-
-# ...
-
 def generate_report_node(state: DeckState):
     print("--- NODE: REPORT GEN ---")
     text = state['original_text'][:50000] 
@@ -170,9 +166,17 @@ def generate_report_node(state: DeckState):
     """
     
     try:
-        content = ""
-        if google_client and model_is_google_native:
-            # ... (Google SDK code remains same)
+        if direct_groq_client and ("llama" in target_google_model.lower() or "llama" in AI_MODEL.lower()):
+            try:
+                res = direct_groq_client.chat.completions.create(
+                    model=AI_MODEL if "llama" in AI_MODEL.lower() else "llama-3.3-70b-versatile",
+                    messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": f"TEXT: {text}"}]
+                )
+                content = res.choices[0].message.content
+            except Exception as e:
+                print(f"Direct Groq Report Gen Error: {e}")
+
+        if not content and google_client and model_is_google_native:
             try:
                 res = google_client.models.generate_content(
                     model=target_google_model,
@@ -222,9 +226,18 @@ def generate_slides_node(state: DeckState):
     """
     
     try:
-        content = ""
-        if google_client and model_is_google_native:
-             # ... (Google SDK code)
+        if direct_groq_client and ("llama" in AI_MODEL.lower() or "mixtral" in AI_MODEL.lower()):
+            try:
+                res = direct_groq_client.chat.completions.create(
+                    model=AI_MODEL if "llama" in AI_MODEL.lower() else "llama-3.3-70b-versatile",
+                    messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": f"TEXT: {text}"}],
+                    response_format={"type": "json_object"}
+                )
+                content = res.choices[0].message.content
+            except Exception as e:
+                print(f"Direct Groq Slides Gen Error: {e}")
+
+        if not content and google_client and model_is_google_native:
             try:
                 res = google_client.models.generate_content(
                     model=target_google_model,
@@ -245,11 +258,14 @@ def generate_slides_node(state: DeckState):
             res = chain.invoke({"text": text})
             return {"slides": res.get("slides", [])}
             
-        # ... (Parsing logic)
         if content:
-             # ...
-             pass
-
+             try:
+                 content = content.replace("```json", "").replace("```", "").strip()
+                 data = json.loads(content, strict=False)
+                 return {"slides": data.get("slides", [])}
+             except Exception as e:
+                 print(f"Slides parse error: {e}")
+                 return {"slides": []}
     except Exception as e:
         print(f"Slides Gen Error: {e}")
         return {"slides": []}
@@ -273,8 +289,18 @@ def generate_table_node(state: DeckState):
     
     try:
         content = ""
-        if google_client and model_is_google_native:
-            # ...
+        if direct_groq_client:
+            try:
+                res = direct_groq_client.chat.completions.create(
+                    model=AI_MODEL if "llama" in AI_MODEL.lower() else "llama-3.3-70b-versatile",
+                    messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": f"TEXT: {text}"}],
+                    response_format={"type": "json_object"}
+                )
+                content = res.choices[0].message.content
+            except Exception as e:
+                print(f"Direct Groq Table Gen Error: {e}")
+
+        if not content and google_client and model_is_google_native:
             try:
                 res = google_client.models.generate_content(
                     model=target_google_model,
@@ -293,12 +319,12 @@ def generate_table_node(state: DeckState):
             prompt = ChatPromptTemplate.from_messages(messages)
             chain = prompt | llm | JsonOutputParser()
             res = chain.invoke({"text": text})
-            return {"table": [res]} if isinstance(res, dict) else {"table": res}
+            return {"table": res.get("rows", []) if isinstance(res, dict) else res}
             
-        # ...
         if content:
-             # ...
-             pass
+             content = content.replace("```json", "").replace("```", "").strip()
+             data = json.loads(content, strict=False)
+             return {"table": data.get("rows", []) if isinstance(data, dict) else data}
     except Exception as e:
         print(f"Table Gen Error: {e}")
         return {"table": []}
@@ -328,14 +354,32 @@ USER PREFERENCES:
 """
     
     prompt_text = f"TEXT TO ANALYZE:\n{text}"
-
     content = ""
     try:
-        # ... (Groq and Google SDK logic remains the same)
+        if direct_groq_client:
+            try:
+                res = direct_groq_client.chat.completions.create(
+                    model=AI_MODEL if "llama" in AI_MODEL.lower() else "llama-3.3-70b-versatile",
+                    messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": prompt_text}]
+                )
+                content = res.choices[0].message.content
+            except Exception as e:
+                print(f"Direct Groq Flowchart Error: {e}")
+
+        if not content and google_client and model_is_google_native:
+            try:
+                res = google_client.models.generate_content(
+                    model=target_google_model,
+                    config={'system_instruction': system_instruction},
+                    contents=prompt_text
+                )
+                content = res.text
+            except Exception as e:
+                print(f"Native Flowchart Error: {e}")
+
         # 3. Fallback to LangChain
         if not content and llm:
             print("DEBUG: Using LangChain wrapper for Flowchart")
-            # Use SystemMessage to prevent re-templating of the instruction including potential user input chars
             messages = [
                 SystemMessage(content=system_instruction),
                 ("user", "{text}")
@@ -344,39 +388,9 @@ USER PREFERENCES:
             chain = full_prompt | llm
             res = chain.invoke({"text": text})
             content = res.content
-            # ...
-            
-        # ... (Rest of logic)
-
     except Exception as e:
-        # ...
-        pass
-        
-    # Re-implementing the function body briefly for the replacement:
-    
-    if not content and google_client and model_is_google_native:
-         try:
-             res = google_client.models.generate_content(
-                 model=target_google_model,
-                 config={'system_instruction': system_instruction},
-                 contents=prompt_text
-             )
-             content = res.text
-         except Exception as e:
-             print(f"Native Flowchart Error: {e}")
-             
-    if not content and llm:
-         messages = [
-             SystemMessage(content=system_instruction),
-             ("user", "{text}")
-         ]
-         full_prompt = ChatPromptTemplate.from_messages(messages)
-         chain = full_prompt | llm
-         res = chain.invoke({"text": text})
-         content = res.content
-         if isinstance(content, list):
-             content = " ".join([str(part.get('text', part)) if isinstance(part, dict) else str(part) for part in content])
-             
+        print(f"Flowchart node Error: {e}")
+
     if not content:
          return {"flowchart": "graph TD\nError[Generation Failed]"}
 
@@ -415,8 +429,18 @@ Respond ONLY with JSON matching the format: {{ "cards": [{{ "q": "...", "a": "..
     for chunk in chunks:
         try:
             content = ""
-            if google_client and model_is_google_native:
-                 # ...
+            if direct_groq_client:
+                try:
+                    res = direct_groq_client.chat.completions.create(
+                        model=AI_MODEL if "llama" in AI_MODEL.lower() else "llama-3.3-70b-versatile",
+                        messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": f"TEXT: {chunk}"}],
+                        response_format={"type": "json_object"}
+                    )
+                    content = res.choices[0].message.content
+                except Exception as e:
+                    print(f"Direct Groq Card Gen Error: {e}")
+
+            if not content and google_client and model_is_google_native:
                  try:
                      res = google_client.models.generate_content(
                          model=target_google_model,
@@ -442,17 +466,22 @@ Respond ONLY with JSON matching the format: {{ "cards": [{{ "q": "...", "a": "..
                 continue 
 
             if content:
-                content = content.replace("```json", "").replace("```", "").strip()
-                data = json.loads(content, strict=False)
-                if 'cards' in data:
-                    new_cards.extend(data['cards'])
+                try:
+                    content = content.replace("```json", "").replace("```", "").strip()
+                    data = json.loads(content, strict=False)
+                    if isinstance(data, dict) and 'cards' in data:
+                        new_cards.extend(data['cards'])
+                    elif isinstance(data, list):
+                        new_cards.extend(data)
+                except Exception as e:
+                    print(f"Card parse error: {e}")
 
         except Exception as e:
             print(f"Card Chunk Error: {e}")
     
     return {"partial_cards": new_cards}
 
-# ...
+
 
 def generate_quiz_node(state: DeckState):
     print("--- NODE: QUIZ GEN ---")
@@ -571,7 +600,7 @@ def generate_guide_node(state: DeckState):
     try:
         content = ""
         if google_client and model_is_google_native:
-            # ...
+
             try:
                 res = google_client.models.generate_content(
                     model=target_google_model,
@@ -592,17 +621,10 @@ def generate_guide_node(state: DeckState):
             res = chain.invoke({"text": text})
             content = res.content
             
-        # ...
-        if content:
-             # parsing...
-             pass
-             
     except Exception as e:
         print(f"Guide Gen Error: {e}")
-        # ...
-        pass
+        return {"guide": {}}
     
-    # ... logic for parsing content ...
     if content:
             try:
                 content = content.replace("```json", "").replace("```", "").strip()
@@ -616,7 +638,7 @@ def generate_guide_node(state: DeckState):
                         data = json.loads(match.group(), strict=False)
                         return {"guide": data}
                     except: pass
-                # ...
+
                 
     return {"guide": {}}
 

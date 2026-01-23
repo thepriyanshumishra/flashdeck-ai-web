@@ -322,10 +322,10 @@ async def generate_table(req: TaskRequest):
 @app.post("/analyze/quiz")
 async def analyze_quiz(req: AnalysisRequest):
     print(f"--- Analyzing Quiz Results for Review Cards ---")
-    from agent_graph import run_selective_node
     try:
+        text = get_text_or_404(req.deck_id)
         # We pass missed questions in extra_data
-        result = await run_in_threadpool(run_selective_node, req.text, "review", extra_data={"missed_questions": req.missed_questions})
+        result = await run_in_threadpool(run_selective_node, text, "review", extra_data={"missed_questions": req.missed_questions})
         return {
             "status": "success",
             "review_cards": result.get("review_cards", [])
@@ -359,8 +359,8 @@ async def generate_podcast(req: TaskRequest):
     
     try:
         # 1. Generate Script (NO CACHE - always fresh)
-        from agent_graph import run_agent_graph
-        result = await run_agent_graph(text, req.deck_id, "podcast_script", extra_data={"options": req.options})
+        from agent_graph import run_selective_node
+        result = await run_in_threadpool(run_selective_node, text, "podcast_script", extra_data={"options": req.options})
         script = result.get("podcast_script", [])
         
         if not script:
@@ -397,8 +397,8 @@ async def generate_overview(req: TaskRequest):
     
     try:
         # 1. Generate Script (NO CACHE - always fresh)
-        from agent_graph import run_agent_graph
-        result = await run_agent_graph(text, req.deck_id, "overview_script", extra_data={"options": req.options})
+        from agent_graph import run_selective_node
+        result = await run_in_threadpool(run_selective_node, text, "overview_script", extra_data={"options": req.options})
         script_text = result.get("overview_script", "")
         
         if not script_text:
