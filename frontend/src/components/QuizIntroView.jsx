@@ -4,7 +4,7 @@ import { useDeck } from '../context/DeckContext';
 import { Brain, ChevronRight, PlayCircle, Sparkles, ArrowLeft, RotateCw } from 'lucide-react';
 
 export default function QuizIntroView({ onClose }) {
-    const { quiz, deckName, deckId, triggerGeneration } = useDeck();
+    const { quiz, deckName, triggerGeneration } = useDeck();
     const navigate = useNavigate();
 
     const handleStart = () => {

@@ -104,7 +104,7 @@ export default function HTMLInfographicViewer({ data, onRegenerate, onClose }) {
         })()
         : data;
 
-    const handleExport = async (format) => {
+    const handleExport = React.useCallback(async (format) => {
         if (!containerRef.current) return;
 
         if (format === 'png') {
@@ -124,9 +124,17 @@ export default function HTMLInfographicViewer({ data, onRegenerate, onClose }) {
         } else if (format === 'svg') {
             // For HTML content, PNG is more reliable than SVG
             // But we can offer it by rendering to canvas first
-            handleExport('png');
+            const canvas = await html2canvas(containerRef.current, {
+                backgroundColor: '#0a0a0a',
+                scale: 2,
+            });
+            const timestamp = Date.now();
+            const link = document.createElement('a');
+            link.download = `infographic-${timestamp}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
         }
-    };
+    }, [containerRef]);
 
     if (!infographicData || !infographicData.sections) {
         return (

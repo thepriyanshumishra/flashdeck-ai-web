@@ -60,7 +60,7 @@ export default function SlideDeckViewer({ data, onRegenerate, onClose }) {
             const pres = new PptxGenJS();
             const brandColor = '6366f1';
 
-            data.forEach((s, idx) => {
+            data.forEach((s) => {
                 const slide = pres.addSlide();
                 slide.background = { color: '0d0d0d' };
 

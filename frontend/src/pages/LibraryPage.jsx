@@ -31,7 +31,6 @@ import {
     Lock,
     EyeOff,
 } from "lucide-react";
-// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useDeck } from "../context/DeckContext";
@@ -590,9 +589,10 @@ export default function LibraryPage() {
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             whileHover={{ y: -6, scale: 1.02 }}
                                             onClick={() => handleDeckClick(nb)}
-                                            className={`relative flex flex-col justify-between p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 group border ${isDark
-                                                ? `bg-black/40 border-white/5 hover:border-white/20 shadow-2xl shadow-black/50`
-                                                : `bg-white border-gray-100 hover:shadow-2xl shadow-indigo-500/5`
+                                            className={`relative flex flex-col justify-between p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 group border ${showDeleteMenu === nb.id ? 'z-[60] scale-[1.02]' : 'z-10'
+                                                } ${isDark
+                                                    ? `bg-black/40 border-white/5 hover:border-white/20 shadow-2xl shadow-black/50`
+                                                    : `bg-white border-gray-100 hover:shadow-2xl shadow-indigo-500/5`
                                                 }`}
                                         >
                                             {/* Clipped Background Effects */}
@@ -620,7 +620,7 @@ export default function LibraryPage() {
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setShowDeleteMenu(
-                                                                showDeleteMenu === nb.name ? null : nb.name,
+                                                                showDeleteMenu === nb.id ? null : nb.id,
                                                             );
                                                         }}
                                                         className={`p-2 rounded-xl transition-all ${isDark
@@ -631,58 +631,60 @@ export default function LibraryPage() {
                                                         <MoreVertical size={18} />
                                                     </button>
 
-                                                    {showDeleteMenu === nb.name && (
+                                                    {showDeleteMenu === nb.id && (
                                                         <div
-                                                            className={`absolute right-0 top-12 w-52 rounded-2xl shadow-[0_30px_70px_rgba(0,0,0,0.8)] border py-2.5 z-[100] overflow-hidden animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#080808] border-white/20" : "bg-white border-gray-200 shadow-2xl"}`}
+                                                            className={`absolute right-0 top-[110%] w-56 rounded-2xl shadow-[0_30px_70px_rgba(0,0,0,0.8)] border py-2.5 z-[100] overflow-hidden animate-in zoom-in-95 slide-in-from-top-2 duration-300 ${isDark ? "bg-[#080808]/95 backdrop-blur-xl border-white/20" : "bg-white/95 backdrop-blur-xl border-gray-200 shadow-2xl"}`}
+                                                            onClick={(e) => e.stopPropagation()}
                                                         >
+                                                            <div className="px-4 py-2 mb-1">
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Manage Deck</p>
+                                                            </div>
+
                                                             <button
                                                                 onClick={(e) => handleEditTitle(e, nb)}
-                                                                className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-gray-300 hover:bg-white/5 hover:text-white" : "text-gray-600 hover:bg-gray-50 hover:text-black"}`}
+                                                                className={`w-full px-4 py-3 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-gray-300 hover:bg-white/5 hover:text-white" : "text-gray-600 hover:bg-gray-50 hover:text-black"}`}
                                                             >
-                                                                <Edit2 size={14} /> Edit Title
+                                                                <Edit2 size={14} className="text-gray-500" />
+                                                                <span>Edit Title</span>
                                                             </button>
 
-                                                            <div
-                                                                className={`my-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`}
-                                                            />
+                                                            <div className="relative group/visibility">
+                                                                <div className={`mx-2 p-2 rounded-xl transition-all cursor-default ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Visibility</span>
+                                                                        <div className={`p-1 rounded-md ${visibility === 'public' ? 'text-emerald-400' : visibility === 'unlisted' ? 'text-amber-400' : 'text-indigo-400'}`}>
+                                                                            {visibilityIcons[visibility]}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-3 gap-1">
+                                                                        {[
+                                                                            { id: 'public', icon: Globe },
+                                                                            { id: 'unlisted', icon: EyeOff },
+                                                                            { id: 'private', icon: Lock }
+                                                                        ].map((v) => (
+                                                                            <button
+                                                                                key={v.id}
+                                                                                onClick={(e) => handleVisibilityChange(e, nb, v.id)}
+                                                                                className={`p-2 rounded-lg flex items-center justify-center transition-all ${visibility === v.id
+                                                                                    ? (isDark ? 'bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-500/50' : 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/20')
+                                                                                    : (isDark ? 'hover:bg-white/10 text-gray-500' : 'hover:bg-gray-200 text-gray-400')}`}
+                                                                                title={v.id.charAt(0).toUpperCase() + v.id.slice(1)}
+                                                                            >
+                                                                                <v.icon size={14} />
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
 
-                                                            <p className="px-4 py-1.5 text-[9px] font-black uppercase tracking-widest text-gray-500">
-                                                                Visibility
-                                                            </p>
-                                                            <button
-                                                                onClick={(e) =>
-                                                                    handleVisibilityChange(e, nb, "public")
-                                                                }
-                                                                className={`w-full px-4 py-2 text-left text-xs font-bold flex items-center gap-3 transition-colors ${visibility === "public" ? "text-indigo-400 bg-indigo-500/10" : isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-600 hover:bg-gray-50"}`}
-                                                            >
-                                                                <Globe size={14} /> Public
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) =>
-                                                                    handleVisibilityChange(e, nb, "unlisted")
-                                                                }
-                                                                className={`w-full px-4 py-2 text-left text-xs font-bold flex items-center gap-3 transition-colors ${visibility === "unlisted" ? "text-indigo-400 bg-indigo-500/10" : isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-600 hover:bg-gray-50"}`}
-                                                            >
-                                                                <EyeOff size={14} /> Unlisted
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) =>
-                                                                    handleVisibilityChange(e, nb, "private")
-                                                                }
-                                                                className={`w-full px-4 py-2 text-left text-xs font-bold flex items-center gap-3 transition-colors ${visibility === "private" ? "text-indigo-400 bg-indigo-500/10" : isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-600 hover:bg-gray-50"}`}
-                                                            >
-                                                                <Lock size={14} /> Private
-                                                            </button>
-
-                                                            <div
-                                                                className={`my-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`}
-                                                            />
+                                                            <div className={`my-2 mx-4 h-px ${isDark ? "bg-white/10" : "bg-gray-100"}`} />
 
                                                             <button
                                                                 onClick={(e) => handleDelete(e, nb)}
-                                                                className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10" : "text-red-500 hover:bg-red-50"}`}
+                                                                className={`w-full px-4 py-3 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10" : "text-red-500 hover:bg-red-50"}`}
                                                             >
-                                                                <Trash2 size={14} /> Delete Deck
+                                                                <Trash2 size={14} />
+                                                                <span>Delete Deck</span>
                                                             </button>
                                                         </div>
                                                     )}
@@ -737,9 +739,10 @@ export default function LibraryPage() {
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
                                             onClick={() => handleDeckClick(nb)}
-                                            className={`flex items-center gap-5 p-4 rounded-3xl border transition-all cursor-pointer group ${isDark
-                                                ? `bg-black/40 border-white/5 hover:border-white/20`
-                                                : `bg-white border-gray-100 hover:shadow-xl`
+                                            className={`flex items-center gap-5 p-4 rounded-3xl border transition-all cursor-pointer group ${showDeleteMenu === nb.id ? 'z-[60] ring-2 ring-indigo-500/50' : 'z-10'
+                                                } ${isDark
+                                                    ? `bg-black/40 border-white/5 hover:border-white/20`
+                                                    : `bg-white border-gray-100 hover:shadow-xl`
                                                 }`}
                                         >
                                             <div
@@ -777,65 +780,67 @@ export default function LibraryPage() {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setShowDeleteMenu(
-                                                            showDeleteMenu === nb.name ? null : nb.name,
+                                                            showDeleteMenu === nb.id ? null : nb.id,
                                                         );
                                                     }}
                                                     className={`p-2 rounded-xl transition-all ${isDark ? "text-gray-500 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-black hover:bg-gray-100"}`}
                                                 >
                                                     <MoreVertical size={18} />
                                                 </button>
-                                                {showDeleteMenu === nb.name && (
+                                                {showDeleteMenu === nb.id && (
                                                     <div
-                                                        className={`absolute right-0 top-12 w-52 rounded-2xl shadow-[0_30px_70px_rgba(0,0,0,0.8)] border py-2.5 z-[100] overflow-hidden animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#080808] border-white/20" : "bg-white border-gray-200 shadow-2xl"}`}
+                                                        className={`absolute right-0 top-[110%] w-56 rounded-2xl shadow-[0_30px_70px_rgba(0,0,0,0.8)] border py-2.5 z-[100] overflow-hidden animate-in zoom-in-95 slide-in-from-top-2 duration-300 ${isDark ? "bg-[#080808]/90 backdrop-blur-xl border-white/20" : "bg-white/90 backdrop-blur-xl border-gray-200 shadow-2xl"}`}
+                                                        onClick={(e) => e.stopPropagation()}
                                                     >
+                                                        <div className="px-4 py-2 mb-1">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Manage Deck</p>
+                                                        </div>
+
                                                         <button
                                                             onClick={(e) => handleEditTitle(e, nb)}
-                                                            className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-gray-300 hover:bg-white/5 hover:text-white" : "text-gray-600 hover:bg-gray-50 hover:text-black"}`}
+                                                            className={`w-full px-4 py-3 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-gray-300 hover:bg-white/5 hover:text-white" : "text-gray-600 hover:bg-gray-50 hover:text-black"}`}
                                                         >
-                                                            <Edit2 size={14} /> Edit Title
+                                                            <Edit2 size={14} className="text-gray-500" />
+                                                            <span>Edit Title</span>
                                                         </button>
 
-                                                        <div
-                                                            className={`my-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`}
-                                                        />
+                                                        <div className="relative group/visibility">
+                                                            <div className={`mx-2 p-2 rounded-xl transition-all cursor-default ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Visibility</span>
+                                                                    <div className={`p-1 rounded-md ${visibility === 'public' ? 'text-emerald-400' : visibility === 'unlisted' ? 'text-amber-400' : 'text-indigo-400'}`}>
+                                                                        {visibilityIcons[visibility]}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="grid grid-cols-3 gap-1">
+                                                                    {[
+                                                                        { id: 'public', icon: Globe },
+                                                                        { id: 'unlisted', icon: EyeOff },
+                                                                        { id: 'private', icon: Lock }
+                                                                    ].map((v) => (
+                                                                        <button
+                                                                            key={v.id}
+                                                                            onClick={(e) => handleVisibilityChange(e, nb, v.id)}
+                                                                            className={`p-2 rounded-lg flex items-center justify-center transition-all ${visibility === v.id
+                                                                                ? (isDark ? 'bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-500/50' : 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/20')
+                                                                                : (isDark ? 'hover:bg-white/10 text-gray-500' : 'hover:bg-gray-200 text-gray-400')}`}
+                                                                            title={v.id.charAt(0).toUpperCase() + v.id.slice(1)}
+                                                                        >
+                                                                            <v.icon size={14} />
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
 
-                                                        <p className="px-4 py-1.5 text-[9px] font-black uppercase tracking-widest text-gray-500">
-                                                            Visibility
-                                                        </p>
-                                                        <button
-                                                            onClick={(e) =>
-                                                                handleVisibilityChange(e, nb, "public")
-                                                            }
-                                                            className={`w-full px-4 py-2 text-left text-xs font-bold flex items-center gap-3 transition-colors ${visibility === "public" ? "text-indigo-400 bg-indigo-500/10" : isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-600 hover:bg-gray-50"}`}
-                                                        >
-                                                            <Globe size={14} /> Public
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) =>
-                                                                handleVisibilityChange(e, nb, "unlisted")
-                                                            }
-                                                            className={`w-full px-4 py-2 text-left text-xs font-bold flex items-center gap-3 transition-colors ${visibility === "unlisted" ? "text-indigo-400 bg-indigo-500/10" : isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-600 hover:bg-gray-50"}`}
-                                                        >
-                                                            <EyeOff size={14} /> Unlisted
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) =>
-                                                                handleVisibilityChange(e, nb, "private")
-                                                            }
-                                                            className={`w-full px-4 py-2 text-left text-xs font-bold flex items-center gap-3 transition-colors ${visibility === "private" ? "text-indigo-400 bg-indigo-500/10" : isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-600 hover:bg-gray-50"}`}
-                                                        >
-                                                            <Lock size={14} /> Private
-                                                        </button>
-
-                                                        <div
-                                                            className={`my-1 h-px ${isDark ? "bg-white/5" : "bg-gray-100"}`}
-                                                        />
+                                                        <div className={`my-2 mx-4 h-px ${isDark ? "bg-white/10" : "bg-gray-100"}`} />
 
                                                         <button
                                                             onClick={(e) => handleDelete(e, nb)}
-                                                            className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10" : "text-red-500 hover:bg-red-50"}`}
+                                                            className={`w-full px-4 py-3 text-left text-xs font-bold flex items-center gap-3 transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10" : "text-red-500 hover:bg-red-50"}`}
                                                         >
-                                                            <Trash2 size={14} /> Delete Deck
+                                                            <Trash2 size={14} />
+                                                            <span>Delete Deck</span>
                                                         </button>
                                                     </div>
                                                 )}

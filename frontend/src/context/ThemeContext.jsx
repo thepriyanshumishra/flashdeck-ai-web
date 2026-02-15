@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext();
@@ -15,7 +16,7 @@ export const ThemeProvider = ({ children }) => {
         try {
             const saved = localStorage.getItem('flashdeck_theme');
             return saved ? saved : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        } catch (e) {
+        } catch {
             return 'dark';
         }
     });

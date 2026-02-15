@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Sparkles, X, Plus, Trash2, File, CheckCircle } from "lucide-react";
 import Button from "../ui/Button";
 import { cn } from "../../lib/utils";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function UploadSection({
     files,
@@ -12,19 +13,26 @@ export default function UploadSection({
     handleGenerate,
     uploadProgress,
 }) {
+    const { isDark } = useTheme();
+
     return (
         <div className="w-full max-w-3xl mx-auto">
             {/* Main Card */}
-            <div className="bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-2xl relative transition-colors duration-300">
+            <div className={cn(
+                "border rounded-3xl overflow-hidden shadow-2xl relative transition-colors duration-300",
+                isDark ? "bg-[#151515] border-white/10" : "bg-white border-gray-200"
+            )}>
 
-                {/* Header */}
-                <div className="p-6 md:p-8 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+                <div className={cn(
+                    "p-6 md:p-8 border-b flex items-center justify-between",
+                    isDark ? "border-white/5" : "border-gray-100"
+                )}>
                     <div>
-                        <h2 className="text-2xl font-medium text-gray-900 dark:text-white mb-2">Add sources</h2>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Upload documents to create your deck.</p>
+                        <h2 className={cn("text-2xl font-medium mb-2", isDark ? "text-white" : "text-gray-900")}>Add sources</h2>
+                        <p className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>Upload documents to create your deck.</p>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center">
-                        <Upload size={20} className="text-gray-500 dark:text-gray-400" />
+                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", isDark ? "bg-white/5" : "bg-gray-100")}>
+                        <Upload size={20} className={isDark ? "text-gray-400" : "text-gray-500"} />
                     </div>
                 </div>
 
@@ -33,7 +41,12 @@ export default function UploadSection({
                     {/* File Drop / List Area */}
                     <div className="flex-1">
                         {files.length === 0 ? (
-                            <div className="h-full border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center p-8 md:p-12 transition-colors hover:border-indigo-500/30 dark:hover:border-white/20 hover:bg-gray-50 dark:hover:bg-white/5 relative group">
+                            <div className={cn(
+                                "h-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 md:p-12 transition-colors relative group",
+                                isDark
+                                    ? "border-white/10 hover:border-white/20 hover:bg-white/5"
+                                    : "border-gray-200 hover:border-indigo-500/30 hover:bg-gray-50"
+                            )}>
                                 <input
                                     type="file"
                                     accept=".pdf"
@@ -42,10 +55,13 @@ export default function UploadSection({
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     onClick={(e) => { e.target.value = null; }}
                                 />
-                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-100 dark:bg-[#1a1a1a] flex items-center justify-center mb-6 border border-gray-200 dark:border-white/5 group-hover:scale-105 transition-transform shadow-sm dark:shadow-none">
-                                    <Plus size={32} className="text-gray-400 dark:text-gray-500" />
+                                <div className={cn(
+                                    "w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-6 border group-hover:scale-105 transition-transform shadow-sm",
+                                    isDark ? "bg-[#1a1a1a] border-white/5 shadow-none" : "bg-gray-100 border-gray-200"
+                                )}>
+                                    <Plus size={32} className={isDark ? "text-gray-500" : "text-gray-400"} />
                                 </div>
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload Files</h3>
+                                <h3 className={cn("text-lg font-medium mb-2", isDark ? "text-white" : "text-gray-900")}>Upload Files</h3>
                                 <p className="text-gray-500 text-sm text-center max-w-xs">
                                     Drag & drop PDF files here, or click to browse.
                                 </p>

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useDeck } from '../context/DeckContext';
 import { Download, RotateCw, Sparkles, Image as ImageIcon, FileText, Presentation, FileType, ArrowLeft } from 'lucide-react';
@@ -9,8 +9,7 @@ import { saveAs } from 'file-saver';
 
 export default function FlashcardViewer({ onClose }) {
     const { isDark } = useTheme();
-    const { cards, deckName, deckId, triggerGeneration } = useDeck();
-    const [selectedCard, setSelectedCard] = useState(null);
+    const { cards, deckName, triggerGeneration } = useDeck();
     const cardsRef = useRef(null);
 
     const handleRegenerate = () => {
@@ -47,7 +46,7 @@ export default function FlashcardViewer({ onClose }) {
         const margin = 15;
         const cardWidth = 180;
 
-        cards.forEach((card, idx) => {
+        cards.forEach((card) => {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(12);
             const qLines = doc.splitTextToSize(`Q: ${card.q}`, cardWidth - 10);
@@ -259,7 +258,7 @@ export default function FlashcardViewer({ onClose }) {
 
             {/* Content - Scrollable */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-transparent relative z-0">
-                <ReviewSection cards={cards} cardsRef={cardsRef} setSelectedCard={setSelectedCard} />
+                <ReviewSection cards={cards} cardsRef={cardsRef} />
             </div>
         </div>
     );

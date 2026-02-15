@@ -309,7 +309,7 @@ export function DeckProvider({ children }) {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [deckId, user, deckName, cards, flowcharts, quiz, messages, generatedContent]);
+  }, [deckId, user, deckName, cards, flowcharts, quiz, messages, generatedContent, decks]);
 
   // Sync Decks with Supabase
   useEffect(() => {
@@ -799,7 +799,6 @@ export function DeckProvider({ children }) {
     },
     [
       deckId,
-      generatedContent,
       deckName,
       cardsStatus,
       flowchartStatus,
@@ -814,7 +813,6 @@ export function DeckProvider({ children }) {
       quiz.length,
       report,
       slides.length,
-      table.length,
       table.length,
       podcastStatus,
       podcastUrl,

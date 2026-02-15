@@ -18,6 +18,9 @@ from pathlib import Path
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
+# Custom search tool
+from ai_engine import web_search
+
 # --- LLM SETUP ---
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -123,9 +126,28 @@ from langchain_core.messages import SystemMessage
 
 def generate_report_node(state: DeckState):
     print("--- NODE: REPORT GEN ---")
-    text = state['original_text'][:50000] 
+    text = state['original_text'][:50000]
     
+    # Check for search enablement
+    search_context = ""
+    if os.getenv("TAVILY_API_KEY"):
+        print("--- RESEARCHING: Fetching Web Context via Tavily ---")
+        try:
+            # Generate search query from text
+            search_prompt = f"Based on the following document snippet, generate a broad search query to find the latest updates, contexts, or related academic details. Snip: {text[:500]}"
+            if llm:
+                query_res = llm.invoke(search_prompt)
+                search_query = query_res.content.replace('"', '')
+                results = web_search(search_query)
+                if results and isinstance(results, list):
+                    search_context = "\n\n--- LATEST WEB CONTEXT ---\n"
+                    for r in results[:3]:
+                        search_context += f"- {r.get('title')}: {r.get('content')}\n"
+        except Exception as e:
+            print(f"Search Integration Error: {e}")
+            
     system_instruction = """You are an expert researcher. Create a comprehensive Deep Research Report based on the provided text.
+    If 'WEB CONTEXT' is provided, incorporate those latest updates into your analysis.
     Format the output in beautiful, professional Markdown.
     
     Structure:
@@ -137,27 +159,27 @@ def generate_report_node(state: DeckState):
     """
     
     try:
-        if direct_groq_client and ("llama" in target_google_model.lower() or "llama" in AI_MODEL.lower()):
+        content = ""
+        full_input = f"TEXT:\n{text}\n\n{search_context}"
+        
+        if direct_groq_client and ("llama" in AI_MODEL.lower()):
             try:
                 res = direct_groq_client.chat.completions.create(
                     model=AI_MODEL if "llama" in AI_MODEL.lower() else "llama-3.3-70b-versatile",
-                    messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": f"TEXT: {text}"}]
+                    messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": full_input}]
                 )
                 content = res.choices[0].message.content
             except Exception as e:
                 print(f"Direct Groq Report Gen Error: {e}")
 
-
-
         if not content and llm:
-            # FIX: Use SystemMessage to avoid variable parsing in the instruction
             messages = [
                 SystemMessage(content=system_instruction),
-                ("user", "TEXT: {text}")
+                ("user", full_input)
             ]
             prompt = ChatPromptTemplate.from_messages(messages)
             chain = prompt | llm
-            res = chain.invoke({"text": text})
+            res = chain.invoke({})
             content = res.content
             
         print(f"Report generated ({len(content)} chars)")

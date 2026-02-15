@@ -32,33 +32,22 @@ import FlashcardViewer from '../components/FlashcardViewer';
 import QuizIntroView from '../components/QuizIntroView';
 import SavedNotesModal from '../components/SavedNotesModal';
 import FlowchartView from '../components/FlowchartView';
-import GenerationSettingsModal from '../components/GenerationSettingsModal';
 import { useTheme } from '../context/ThemeContext';
 import ShareModal from '../components/ShareModal';
 import SEO from '../components/common/SEO';
 
 export default function DeckDashboard() {
-    const { isDark, toggleTheme, setTheme } = useTheme();
+    const { isDark, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
     // Navbar State
     const [searchTerm, setSearchTerm] = useState('');
     const [activeMenu, setActiveMenu] = useState(null);
-    const [settings, setSettings] = useState({
-        notifications: true,
-        sound: false,
-        autoSave: true,
-        compactMode: false
-    });
 
     const handleMenuClick = (menu, e) => {
         e.stopPropagation();
         setActiveMenu(activeMenu === menu ? null : menu);
-    };
-
-    const handleSettingChange = (key, value) => {
-        setSettings(prev => ({ ...prev, [key]: value }));
     };
 
     // Close menus on click outside
@@ -79,9 +68,7 @@ export default function DeckDashboard() {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [sourcesSearchTerm, setSourcesSearchTerm] = useState('');
 
-    // Settings Modal State
-    const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-    const [settingsTool, setSettingsTool] = useState(null);
+
 
     // Podcast & Overview State
     const [podcastMenuOpen, setPodcastMenuOpen] = useState(false);
@@ -129,49 +116,29 @@ export default function DeckDashboard() {
         }
     };
 
-    const handleOpenSettings = (toolName, e) => {
-        e.stopPropagation();
-        setSettingsTool(toolName);
-        setSettingsModalOpen(true);
-    };
 
-    const handleGenerateWithSettings = (toolName, options) => {
-        // Map tool name to triggerGeneration type
-        const typeMap = {
-            "Flashcards": "cards",
-            "Quiz": "quiz",
-            "Mind Map": "flowchart",
-            "Slide Deck": "slides",
-            "Reports": "report",
-            "Data Table": "table"
-        };
 
-        const type = typeMap[toolName];
-        if (type) {
-            triggerGeneration(type, options);
-        }
-        setSettingsModalOpen(false);
-    };
+
 
     const {
-        files, setFiles, handleFilesAdded, handleRemoveFile,
+        files, setFiles, handleRemoveFile,
         flowcharts,
         deckName,
         uploadFilesToDeck,
-        cards, cardsStatus, flowchartStatus,
+        cardsStatus, flowchartStatus,
         triggerGeneration,
         messages,
         isChatLoading,
         isThinking,
         handleSendMessage,
         handleClearAll,
-        quiz, quizStatus,
+        quizStatus,
         report, reportStatus,
         slides, slidesStatus,
         table, tableStatus,
         guide, guideStatus, savedNotes, saveNote,
-        podcastStatus, setPodcastStatus, podcastUrl, setPodcastUrl, podcastMode, setPodcastMode,
-        overviewStatus, setOverviewStatus, overviewUrl, setOverviewUrl, overviewMode, setOverviewMode,
+        podcastStatus, podcastUrl, podcastMode, setPodcastMode,
+        overviewStatus, overviewUrl, overviewMode, setOverviewMode,
         generationSteps,
         deckId
     } = useDeck();
@@ -192,18 +159,21 @@ export default function DeckDashboard() {
                 setThinkingStep(prev => (prev + 1) % thinkingStatuses.length);
             }, 2500);
         } else {
-            setThinkingStep(0);
+            // Delay to avoid cascading render warning
+            const timer = setTimeout(() => setThinkingStep(0), 0);
+            return () => clearTimeout(timer);
         }
         return () => clearInterval(interval);
-    }, [isThinking]);
+    }, [isThinking, thinkingStatuses.length]);
 
     // Reload audio elements when URLs change
     useEffect(() => {
         if (podcastAudioRef.current && podcastUrl) {
             podcastAudioRef.current.load();
         } else if (!podcastUrl) {
-            // Reset playing state when URL is cleared
-            setIsPodcastPlaying(false);
+            // Delay to avoid cascading render warning
+            const timer = setTimeout(() => setIsPodcastPlaying(false), 0);
+            return () => clearTimeout(timer);
         }
     }, [podcastUrl]);
 
@@ -211,8 +181,9 @@ export default function DeckDashboard() {
         if (overviewAudioRef.current && overviewUrl) {
             overviewAudioRef.current.load();
         } else if (!overviewUrl) {
-            // Reset playing state when URL is cleared
-            setIsOverviewPlaying(false);
+            // Delay to avoid cascading render warning
+            const timer = setTimeout(() => setIsOverviewPlaying(false), 0);
+            return () => clearTimeout(timer);
         }
     }, [overviewUrl]);
 
@@ -221,15 +192,7 @@ export default function DeckDashboard() {
         navigate('/library');
     };
 
-    const handleGenerateAll = () => {
-        // Fire all requests in parallel
-        if (cardsStatus === 'idle') triggerGeneration('cards');
-        if (flowchartStatus === 'idle') triggerGeneration('flowchart');
-        if (quizStatus === 'idle') triggerGeneration('quiz');
-        if (reportStatus === 'idle') triggerGeneration('report');
-        if (slidesStatus === 'idle') triggerGeneration('slides');
-        if (tableStatus === 'idle') triggerGeneration('table');
-    };
+
 
     const handleAddSource = () => {
         fileInputRef.current?.click();
@@ -558,14 +521,11 @@ export default function DeckDashboard() {
             recognitionRef.current.interimResults = true;
 
             recognitionRef.current.onresult = (event) => {
-                let interimTranscript = '';
                 let finalTranscript = '';
 
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
                         finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
                     }
                 }
 
@@ -742,13 +702,14 @@ export default function DeckDashboard() {
 
             <div className="flex-1 flex overflow-hidden relative">
                 {/* LEFT COLUMN: SOURCES */}
+                {/* LEFT COLUMN: SOURCES */}
                 <div className={`
-                    ${mobileTab === 'sources' ? 'flex w-full absolute inset-0 z-30 md:static ' + (isDark ? 'bg-[#111]' : 'bg-[#F8F9FA]') : 'hidden md:flex'}
+                    ${mobileTab === 'sources' ? 'flex w-full absolute inset-0 z-30 bg-background md:static' : 'hidden md:flex'}
                     ${isSourcesCollapsed ? 'md:w-16' : 'md:w-[320px]'}
                     flex-shrink-0 flex-col border-r transition-all duration-300
-                    ${isDark ? 'bg-[#111] border-white/10' : 'bg-[#F8F9FA] border-gray-200'}
+                    ${isDark ? 'bg-[#0a0a0a] border-white/10' : 'bg-[#F8F9FA] border-gray-200'}
                 `}>
-                    <div className={`${isSourcesCollapsed ? 'p-2' : 'p-4'} flex flex-col h-full transition-all duration-300`}>
+                    <div className={`${isSourcesCollapsed ? 'p-2' : 'p-4'} flex flex-col h-full transition-all duration-300 bg-inherit`}>
                         {isSourcesCollapsed ? (
                             <div className="flex flex-col items-center gap-4 py-4 h-full">
                                 <button
@@ -1428,15 +1389,7 @@ export default function DeckDashboard() {
                 onClose={() => setIsSavedNotesModalOpen(false)}
                 notes={savedNotes}
             />
-            {
-                settingsModalOpen && (
-                    <GenerationSettingsModal
-                        toolName={settingsTool}
-                        onClose={() => setSettingsModalOpen(false)}
-                        onGenerate={handleGenerateWithSettings}
-                    />
-                )
-            }
+
             <ShareModal
                 isOpen={isShareModalOpen}
                 onClose={() => setIsShareModalOpen(false)}
@@ -1448,30 +1401,25 @@ export default function DeckDashboard() {
 }
 
 const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, handleSendMessage, saveNote }) => {
-    // Local parsing logic for suggestions in assistant messages
     let cleanContent = msg.content;
     let chatSuggestions = [];
 
-    // Capture EVERYTHING from [SUGGESTIONS] to the end of the brackets, non-greedily
-    const suggestionMatch = msg.content.match(/\[SUGGESTIONS\]:?\s*(\[[\s\S]*?\])/i);
+    // 1. First, strip the [SUGGESTIONS] block from cleanContent to hide it from the UI immediately
+    const hasSuggestionsTag = msg.content.match(/\[SUGGESTIONS\]:?/i);
+    if (hasSuggestionsTag) {
+        cleanContent = msg.content.split(/\[SUGGESTIONS\]:?/i)[0].trim();
+    }
 
+    // 2. Try to parse the suggestions if they are complete enough
+    const suggestionMatch = msg.content.match(/\[SUGGESTIONS\]:?\s*(\[[\s\S]*?\])/i);
     if (suggestionMatch) {
         try {
-            let jsonStr = suggestionMatch[1]
-                .trim()
-                .replace(/,\s*\]$/, ']'); // Fix trailing comma
-
-            suggestions = JSON.parse(jsonStr);
-
-            // Clean content should remove the entire [SUGGESTIONS] block
-            cleanContent = msg.content.replace(/\[SUGGESTIONS\]:?\s*\[[\s\S]*?\]/i, '').trim();
-        } catch (e) {
-            console.error("Failed to parse suggestions", e, suggestionMatch[1]);
-            // Fallback: try to extract strings with regex if JSON parse fails
+            let jsonStr = suggestionMatch[1].trim().replace(/,\s*\]$/, ']');
+            chatSuggestions = JSON.parse(jsonStr);
+        } catch {
             const stringMatch = suggestionMatch[1].match(/"([^"]+)"/g);
             if (stringMatch) {
-                suggestions = stringMatch.map(s => s.replace(/"/g, ''));
-                cleanContent = msg.content.replace(/\[SUGGESTIONS\]:?\s*\[[\s\S]*?\]/i, '').trim();
+                chatSuggestions = stringMatch.map(s => s.replace(/"/g, ''));
             }
         }
     }
@@ -1492,7 +1440,9 @@ const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, h
         if (!isStreaming) {
             // Check if we need to catch up immediately when streaming stops
             if (displayedContent !== cleanContent) {
-                setDisplayedContent(cleanContent);
+                // Delay to avoid cascading render
+                const timer = setTimeout(() => setDisplayedContent(cleanContent), 0);
+                return () => clearTimeout(timer);
             }
             return;
         }
@@ -1507,7 +1457,9 @@ const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, h
             return () => clearTimeout(timeout);
         } else if (displayedContent.length > cleanContent.length) {
             // Handle case where content might shrink (rare, but good for stability)
-            setDisplayedContent(cleanContent);
+            // Delay to avoid cascading render
+            const timer = setTimeout(() => setDisplayedContent(cleanContent), 0);
+            return () => clearTimeout(timer);
         }
     }, [cleanContent, displayedContent, isStreaming]);
 
@@ -1515,7 +1467,9 @@ const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, h
     useEffect(() => {
         // Increased buffer to 150 to allow for slower typing without constant jumping
         if (isStreaming && cleanContent.length - displayedContent.length > 150) {
-            setDisplayedContent(cleanContent.slice(0, cleanContent.length - 5));
+            // Delay to avoid cascading render
+            const timer = setTimeout(() => setDisplayedContent(cleanContent.slice(0, cleanContent.length - 5)), 0);
+            return () => clearTimeout(timer);
         }
     }, [cleanContent, displayedContent, isStreaming]);
 
@@ -1535,27 +1489,27 @@ const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, h
                         remarkPlugins={REMARK_PLUGINS}
                         rehypePlugins={REHYPE_PLUGINS}
                         components={{
-                            strong: ({ _node, ...props }) => <strong className={`font-bold ${isDark ? 'text-white/95' : 'text-gray-950'}`} {...props} />,
-                            em: ({ _node, ...props }) => <em className={`italic ${isDark ? 'text-gray-400' : 'text-gray-600'}`} {...props} />,
-                            blockquote: ({ _node, ...props }) => <blockquote className={`border-l-2 pl-4 my-4 italic py-1 ${isDark ? 'border-indigo-500/50 text-gray-400 bg-indigo-500/5' : 'border-indigo-600/50 text-gray-700 bg-indigo-50'}`} {...props} />,
-                            p: ({ _node, ...props }) => <div className={`mb-4 last:mb-0 leading-relaxed text-[14px] md:text-[15px] ${isDark ? 'text-gray-300/90' : 'text-gray-900 font-medium'}`} {...props} />,
-                            ul: ({ _node, ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
-                            ol: ({ _node, ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
-                            li: ({ _node, ...props }) => <li className={`text-[14px] md:text-[15px] ${isDark ? '' : 'text-gray-900'}`} {...props} />,
-                            h1: ({ _node, ...props }) => <h1 className={`text-xl md:text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                            h2: ({ _node, ...props }) => <h2 className={`text-lg md:text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                            h3: ({ _node, ...props }) => <h3 className={`text-base md:text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                            table: ({ _node, ...props }) => (
+                            strong: ({ ...props }) => <strong className={`font-bold ${isDark ? 'text-white/95' : 'text-gray-950'}`} {...props} />,
+                            em: ({ ...props }) => <em className={`italic ${isDark ? 'text-gray-400' : 'text-gray-600'}`} {...props} />,
+                            blockquote: ({ ...props }) => <blockquote className={`border-l-2 pl-4 my-4 italic py-1 ${isDark ? 'border-indigo-500/50 text-gray-400 bg-indigo-500/5' : 'border-indigo-600/50 text-gray-700 bg-indigo-50'}`} {...props} />,
+                            p: ({ ...props }) => <div className={`mb-4 last:mb-0 leading-relaxed text-[14px] md:text-[15px] ${isDark ? 'text-gray-300/90' : 'text-gray-900 font-medium'}`} {...props} />,
+                            ul: ({ ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
+                            ol: ({ ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
+                            li: ({ ...props }) => <li className={`text-[14px] md:text-[15px] ${isDark ? '' : 'text-gray-900'}`} {...props} />,
+                            h1: ({ ...props }) => <h1 className={`text-xl md:text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                            h2: ({ ...props }) => <h2 className={`text-lg md:text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                            h3: ({ ...props }) => <h3 className={`text-base md:text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                            table: ({ ...props }) => (
                                 <div className={`my-6 overflow-x-auto rounded-2xl border ${isDark ? 'border-white/10 bg-[#121212]' : 'border-gray-200 bg-gray-50'}`}>
                                     <table className="w-full text-left border-collapse text-sm" {...props} />
                                 </div>
                             ),
-                            thead: ({ _node, ...props }) => <thead className={`${isDark ? 'bg-white/5 text-gray-200' : 'bg-gray-200 text-gray-900'} font-semibold`} {...props} />,
-                            th: ({ _node, ...props }) => <th className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-300'}`} {...props} />,
-                            td: ({ _node, ...props }) => <td className={`p-4 border-b ${isDark ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-800'}`} {...props} />,
-                            tr: ({ _node, ...props }) => <tr className={`${isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'} transition-colors`} {...props} />,
-                            pre: ({ _node, ...props }) => <pre className={`font-mono ${isDark ? 'text-gray-300 bg-[#121212] border-white/5' : 'text-gray-800 bg-gray-100 border-gray-200'} whitespace-pre-wrap p-4 rounded-2xl border my-4 overflow-x-auto custom-scrollbar`} {...props} />,
-                            code: ({ _node, inline, ...props }) => (
+                            thead: ({ ...props }) => <thead className={`${isDark ? 'bg-white/5 text-gray-200' : 'bg-gray-200 text-gray-900'} font-semibold`} {...props} />,
+                            th: ({ ...props }) => <th className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-300'}`} {...props} />,
+                            td: ({ ...props }) => <td className={`p-4 border-b ${isDark ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-800'}`} {...props} />,
+                            tr: ({ ...props }) => <tr className={`${isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'} transition-colors`} {...props} />,
+                            pre: ({ ...props }) => <pre className={`font-mono ${isDark ? 'text-gray-300 bg-[#121212] border-white/5' : 'text-gray-800 bg-gray-100 border-gray-200'} whitespace-pre-wrap p-4 rounded-2xl border my-4 overflow-x-auto custom-scrollbar`} {...props} />,
+                            code: ({ inline, ...props }) => (
                                 inline
                                     ? <span className={`font-mono ${isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-100'} px-1.5 py-0.5 rounded text-xs`} {...props} />
                                     : <code className="block w-full" {...props} />
@@ -1595,8 +1549,8 @@ const MemoizedChatMessage = memo(({ msg, isDark, isLastMessage, isChatLoading, h
             </div>
 
             {/* Dynamic Suggestions for Assistant Messages */}
-            {msg.role === 'assistant' && isLastMessage && !isChatLoading && chatSuggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500 pl-2">
+            {msg.role === 'assistant' && chatSuggestions.length > 0 && (
+                <div className={`flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500 pl-2 ${!isLastMessage ? 'opacity-70 grayscale-[0.5]' : ''}`}>
                     {chatSuggestions.map((q, j) => (
                         <button
                             key={j}

@@ -9,7 +9,7 @@ import { signOut, auth } from '../../lib/firebase';
 
 export default function Navbar() {
     const { user } = useAuth();
-    const { theme, toggleTheme, isDark } = useTheme();
+    const { toggleTheme, isDark } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
     const [isScrolled, setIsScrolled] = useState(false);

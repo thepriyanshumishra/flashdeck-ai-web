@@ -1,9 +1,7 @@
 import React, { Children, isValidElement } from 'react';
 import clsx from 'clsx';
 
-const StickyTabItem = ({ title, id, children }) => {
-    return null;
-};
+const StickyTabItem = () => null;
 
 const StickyTabs = ({
     children,

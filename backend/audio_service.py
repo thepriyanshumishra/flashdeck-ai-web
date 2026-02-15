@@ -22,6 +22,47 @@ GTTS_VOICE_MAP = {
     "teacher": {"lang": "en", "tld": "co.in"},  # Indian English (Clear, slightly slower, good for lecturing)
 }
 
+# ElevenLabs Setup
+ELEVEN_KEY = os.getenv("ELEVENLABS_API_KEY")
+# Common ElevenLabs Voice IDs (Adam, Antoni, Bella, etc.)
+ELEVEN_VOICE_MAP = {
+    "host_a": "pNInz6obpgDQGcFmaJgB", # Adam (Male, US)
+    "host_b": "EXAVITQu4vr4xnSDxMaL", # Bella (Female, US)
+    "teacher": "VR6AewrYgBx7vofrD9Od" # Brian (Male, Educational)
+}
+
+async def generate_speech_file_elevenlabs(text: str, voice_type: str, filename: str) -> str:
+    """Generates speech using ElevenLabs (Premium)."""
+    if not ELEVEN_KEY:
+        raise ValueError("ElevenLabs API Key missing")
+    
+    from elevenlabs.client import ElevenLabs
+    client = ElevenLabs(api_key=ELEVEN_KEY)
+    
+    voice_id = ELEVEN_VOICE_MAP.get(voice_type, ELEVEN_VOICE_MAP["teacher"])
+    
+    try:
+        # Generate audio (sync call from SDK, need to offload)
+        loop = asyncio.get_event_loop()
+        def _call_eleven():
+            # generate() returns a generator of bytes
+            audio_generator = client.generate(
+                text=text,
+                voice=voice_id,
+                model="eleven_multilingual_v2"
+            )
+            with open(filename, "wb") as f:
+                for chunk in audio_generator:
+                    f.write(chunk)
+            return filename
+
+        await loop.run_in_executor(None, _call_eleven)
+        print(f"✨ Audio generated with ElevenLabs ({voice_type})")
+        return filename
+    except Exception as e:
+        print(f"❌ ElevenLabs failed: {e}")
+        raise
+
 async def generate_speech_file_gtts(text: str, voice_type: str, filename: str) -> str:
     """Generates speech using Google TTS (primary, free service)."""
     ensure_dir = os.path.dirname(filename)
@@ -77,10 +118,20 @@ async def generate_speech_file_edge(text: str, voice: str, filename: str) -> str
 async def generate_speech_file(text: str, voice: str, filename: str, voice_type: str = "teacher") -> str:
     """
     Generates speech file with automatic fallback.
-    Primary: Google TTS (gTTS) - Free, Reliable, but Robotic
-    Fallback: Edge TTS - High Quality, but Unreliable
+    Priority:
+    1. ElevenLabs (Premium AI Voice)
+    2. Google TTS (gTTS) - Free, Reliable, but Robotic
+    3. Edge TTS - High Quality, but Unreliable
     """
-    # 1. Try Google TTS (Primary for now due to Edge instability)
+    # 0. Try ElevenLabs if configured
+    if ELEVEN_KEY:
+        try:
+            print(f"✨ Attempting audio generation with ElevenLabs ({voice_type})...")
+            return await generate_speech_file_elevenlabs(text, voice_type, filename)
+        except Exception as e:
+            print(f"⚠️ ElevenLabs failed, falling back to Google TTS: {e}")
+
+    # 1. Try Google TTS (Primary fallback)
     try:
         print(f"🎤 Attempting audio generation with Google TTS ({voice_type})...")
         return await generate_speech_file_gtts(text, voice_type, filename)
@@ -92,7 +143,7 @@ async def generate_speech_file(text: str, voice: str, filename: str, voice_type:
         print(f"🔄 Falling back to Edge TTS...")
         return await generate_speech_file_edge(text, voice, filename)
     except Exception as edge_error:
-        print(f"❌ Both TTS services failed!")
+        print(f"❌ All TTS services failed!")
         raise Exception(f"All TTS services failed. Google TTS: {gtts_error}, Edge TTS: {edge_error}")
 
 async def create_podcast_audio(script: list, deck_id: str = None) -> str:

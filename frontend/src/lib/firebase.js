@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import {
     getAuth,
     GoogleAuthProvider,
@@ -28,7 +28,15 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+// Initialize Analytics conditionally
+let analytics = null;
+isSupported().then((supported) => {
+    if (supported) {
+        analytics = getAnalytics(app);
+    }
+}).catch(() => console.log("Analytics blocked or not supported"));
+
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 

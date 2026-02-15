@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 export default function AutoScale({ children, className = "" }) {
     const containerRef = useRef(null);
     const contentRef = useRef(null);
-    const [scale, setScale] = useState(1);
 
     useEffect(() => {
         const resize = () => {
@@ -40,7 +39,6 @@ export default function AutoScale({ children, className = "" }) {
             // Max: 2.5 (don't become absurdly large)
             newScale = Math.min(Math.max(newScale, 0.2), 2.5);
 
-            setScale(newScale);
             content.style.transform = `scale(${newScale})`;
         };
 

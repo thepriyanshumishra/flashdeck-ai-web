@@ -8,7 +8,6 @@ import jsPDF from 'jspdf';
 
 export default function ReportViewer({ markdown, onRegenerate, onClose }) {
     const { isDark } = useTheme();
-    const reportRef = React.useRef(null);
     const [copied, setCopied] = React.useState(false);
 
     const handleCopy = () => {

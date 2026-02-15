@@ -444,9 +444,10 @@ async def chat_endpoint(req: ChatRequest):
     7. TONE: Encouraging, patient, and professional.
 
     SUGGESTED QUESTIONS:
-    At the very end of EVERY response, you MUST provide exactly 3 suggested continuation questions that the user might want to ask next based on the current context. 
-    Format them EXACTLY like this on a new line:
-    [SUGGESTIONS]: ["Question 1", "Question 2", "Question 3"]
+    At the very end of EVERY response, you MUST provide exactly 3 suggested continuation questions. 
+    These questions MUST be highly relevant to the response you just gave and the specific concepts discussed.
+    Format them EXACTLY like this on a new line (do not use code blocks):
+    [SUGGESTIONS]: ["Relevant Question 1", "Relevant Question 2", "Relevant Question 3"]
     """
 
 
@@ -553,6 +554,59 @@ async def get_deck_text(deck_id: str):
     """Returns the full text of a deck."""
     text = get_text_or_404(deck_id)
     return {"status": "success", "text": text}
+
+@app.get("/generate/image")
+async def get_unsplash_image(query: str):
+    """Fetches a high-quality image from Unsplash for a given query."""
+    import requests
+    access_key = os.getenv("UNSPLASH_ACCESS_KEY")
+    if not access_key:
+        return {"url": "https://images.unsplash.com/photo-1544648151-1823ed3bd333?q=80&w=2000&auto=format&fit=crop"}
+    
+    try:
+        url = f"https://api.unsplash.com/search/photos?query={query}&per_page=1&orientation=landscape"
+        headers = {"Authorization": f"Client-ID {access_key}"}
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        if data.get("results"):
+            return {"url": data["results"][0]["urls"]["regular"]}
+    except Exception as e:
+        print(f"Unsplash Error: {e}")
+    
+    return {"url": "https://images.unsplash.com/photo-1544648151-1823ed3bd333?q=80&w=2000&auto=format&fit=crop"}
+
+@app.post("/email/send")
+async def send_study_email(email: str = Body(...), deck_name: str = Body(...), content_type: str = Body(...), content: str = Body(...)):
+    """Sends study materials to the user via Resend."""
+    import resend
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Resend API key not configured.")
+    
+    resend.api_key = api_key
+    
+    subject = f"📚 Your FlashDeck AI: {deck_name}"
+    html_content = f"""
+    <h1>Your Study Materials are Ready!</h1>
+    <p>Here is your <strong>{content_type}</strong> for <strong>{deck_name}</strong>.</p>
+    <div style="background: #f4f4f4; padding: 15px; border-radius: 8px; font-family: sans-serif;">
+        {content[:2000]}... (truncated for preview)
+    </div>
+    <p>Good luck with your studies! 🎓</p>
+    """
+    
+    try:
+        params = {
+            "from": "FlashDeck AI <onboarding@resend.dev>",
+            "to": [email],
+            "subject": subject,
+            "html": html_content,
+        }
+        resend.Emails.send(params)
+        return {"status": "success", "message": "Email sent successfully!"}
+    except Exception as e:
+        print(f"Resend Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --- Static File Serving ---

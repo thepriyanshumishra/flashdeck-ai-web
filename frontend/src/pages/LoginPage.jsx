@@ -10,7 +10,6 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, User, Send, Sparkles, Loader2 } from "lucide-react";
 import Button from "../components/ui/Button";

@@ -81,7 +81,7 @@ const Flashcard = ({ card, index }) => {
     );
 };
 
-export default function ReviewSection({ cards, cardsRef, setSelectedCard }) {
+export default function ReviewSection({ cards, cardsRef }) {
     if (!cards || cards.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-24 text-gray-600">

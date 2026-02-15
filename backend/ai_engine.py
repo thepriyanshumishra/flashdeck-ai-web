@@ -25,9 +25,14 @@ if GOOGLE_API_KEY:
 
 # OpenRouter Client (OpenAI compatible)
 or_client = None
-if OPENROUTER_KEY:
-    or_client = OpenAI(
-    )
+if OPENROUTER_KEY and OPENROUTER_KEY.strip() and "your_" not in OPENROUTER_KEY:
+    try:
+        or_client = OpenAI(
+            api_key=OPENROUTER_KEY,
+            base_url="https://openrouter.ai/api/v1"
+        )
+    except Exception as e:
+        print(f"Failed to initialize OpenRouter client: {e}")
 
 # Groq Client
 groq_client = None
@@ -35,7 +40,24 @@ if GROQ_API_KEY:
     print("--- Using Groq AI Engine ---")
     groq_client = groq.Groq(api_key=GROQ_API_KEY)
 
+# Tavily Client
+tavily_client = None
+if os.getenv("TAVILY_API_KEY"):
+    from tavily import TavilyClient
+    tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+
 import fitz  # PyMuPDF
+
+def web_search(query: str):
+    """Performs a web search using Tavily and returns the results."""
+    if not tavily_client:
+        return "Tavily API key not set."
+    try:
+        response = tavily_client.search(query=query, search_depth="advanced")
+        return response.get("results", [])
+    except Exception as e:
+        print(f"Tavily Search Error: {e}")
+        return []
 
 # ... (imports remain)
 

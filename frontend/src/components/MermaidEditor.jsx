@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import mermaid from 'mermaid'
-import { Edit2, Eye, Download, Save, RefreshCw, ZoomIn, ZoomOut, Maximize2, AlertTriangle } from 'lucide-react'
-import html2canvas from 'html2canvas'
+import { ZoomIn, ZoomOut, RefreshCw, Edit2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion'
 
 export default function MermaidEditor({ code, onSave, readOnly = false }) {
@@ -20,7 +19,7 @@ export default function MermaidEditor({ code, onSave, readOnly = false }) {
 
     // Silence Mermaid's global error handler
     useEffect(() => {
-        mermaid.parseError = (err, hash) => {
+        mermaid.parseError = () => {
             // console.debug('Mermaid parse error suppressed:', err);
         };
     }, []);
@@ -79,7 +78,7 @@ export default function MermaidEditor({ code, onSave, readOnly = false }) {
                 // Success - make sure no error artifacts popped up during render
                 setTimeout(cleanupMermaidErrors, 50);
                 return true;
-            } catch (e) {
+            } catch {
                 // Remove any partial render garbage
                 if (graphRef.current) graphRef.current.innerHTML = '';
                 cleanupMermaidErrors();
@@ -94,7 +93,7 @@ export default function MermaidEditor({ code, onSave, readOnly = false }) {
         console.warn("Mermaid render failed, attempting auto-fix...");
         let fixedCode = currentCode
             .replace(/\[([^"\]]+?)\]/g, '["$1"]')
-            .replace(/\(([^\)"\)]+?)\)/g, '("$1")')
+            .replace(/\(([^")]+?)\)/g, '("$1")')
             .replace(/note\s+".*?"\s*$/gm, '')
             .replace(/-->/g, '-->')
             .trim();
@@ -155,23 +154,6 @@ export default function MermaidEditor({ code, onSave, readOnly = false }) {
     };
 
     const handleMouseUp = () => setIsDragging(false);
-
-    const handleDownload = async (format) => {
-        if (!graphRef.current) return;
-        try {
-            const canvas = await html2canvas(graphRef.current, {
-                backgroundColor: '#0a0a0a',
-                scale: 3
-            });
-            const link = document.createElement('a');
-            link.download = `mindmap-${Date.now()}.${format}`;
-            link.href = canvas.toDataURL(`image/${format === 'png' ? 'png' : 'jpeg'}`);
-            link.click();
-        } catch (e) {
-            console.error("Export Failed", e)
-            alert("Export failed: " + e.message)
-        }
-    }
 
     if (isEditing) {
         return (
