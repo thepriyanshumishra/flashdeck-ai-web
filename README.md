@@ -6,6 +6,15 @@ FlashDeck AI is a full-stack automated learning platform. It analyzes complex do
 
 ---
 
+## 🛡️ Recent Updates (v2.1)
+
+-   **Code Quality**: Achieved **Zero Lint Errors/Warnings** across the entire codebase. Systematically resolved over 15+ issues related to unused code, React hook dependencies, and performance-impacting synchronous state updates.
+-   **Security Enhancements**: Implemented **Cross-Origin-Opener-Policy (COOP)** security headers to ensure seamless and secure Firebase Authentication popup flows.
+-   **Performance Optimization**: Refactored the `DeckDashboard` and `QuizPage` components to eliminate cascading renders, ensuring ultra-smooth AI generation UI.
+-   **Reliability**: Strengthened `useDeck` context hooks with more robust state management and cleanup logic to prevent memory leaks and stale data.
+
+--- 
+
 ## 🏗️ Architecture: The Agentic Workflow
 
 We moved beyond simple RAG. FlashDeck uses a **Selective Agent Graph** to process documents and generate specialized study tools on-demand.
